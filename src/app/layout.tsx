@@ -75,13 +75,14 @@ export default async function RootLayout({
         {config ? (
           <ClientConfigProvider config={config}>
             {children}
+            <IOSInstallPrompt />
           </ClientConfigProvider>
         ) : (
           <div className="flex items-center justify-center h-screen bg-slate-50 text-slate-800 font-bold">
             Error loading shop configuration.
           </div>
         )}
-        <IOSInstallPrompt />
+
       </body>
     </html>
   );
