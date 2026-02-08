@@ -148,7 +148,7 @@ export default function ClientDashboard() {
 
       <ClientHeader config={config} userName={userName} level={userLevel} />
 
-      <main className="pt-28 px-5 flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-700">
+      <main className="pt-36 px-5 flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-700">
 
         <PromoBanner config={config} />
 

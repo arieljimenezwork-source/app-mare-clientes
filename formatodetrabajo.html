@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRANDIA — Fidelización Digital para Cafeterías | Demo Mare Café</title>
+    <meta name="description" content="Plataforma de fidelización digital para cafeterías. Caso de éxito: Mare Café, Mar del Plata.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mare: { blue: '#1E3A8A', cream: '#F5F5DC', beige: '#E8DCC8' },
+                        brandia: { dark: '#0A0A0A', accent: '#9C6644', warm: '#D4A373' }
+                    },
+                    fontFamily: {
+                        display: ['Playfair Display', 'serif'],
+                        body: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-display { font-family: 'Playfair Display', serif; }
+
+        /* Animations */
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+        @keyframes pulse-glow { 0%,100%{box-shadow:0 0 20px rgba(30,58,138,0.3)} 50%{box-shadow:0 0 40px rgba(30,58,138,0.6)} }
+        @keyframes slide-up { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes fade-in { from{opacity:0} to{opacity:1} }
+        @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+        @keyframes stamp-pop { 0%{transform:scale(0) rotate(-180deg);opacity:0} 60%{transform:scale(1.3) rotate(10deg)} 100%{transform:scale(1) rotate(0);opacity:1} }
+        @keyframes gold-pulse { 0%,100%{background-color:#F59E0B} 50%{background-color:#D97706} }
+        @keyframes confetti-fall { 0%{transform:translateY(-100vh) rotate(0deg);opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
+        @keyframes notch-glow { 0%,100%{opacity:0.5} 50%{opacity:1} }
+
+        .animate-float { animation: float 4s ease-in-out infinite; }
+        .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+        .animate-slide-up { animation: slide-up 0.8s ease-out forwards; }
+        .animate-fade-in { animation: fade-in 0.6s ease-out forwards; }
+        .animate-stamp-pop { animation: stamp-pop 0.5s cubic-bezier(0.68,-0.55,0.27,1.55) forwards; }
+
+        .shimmer-bg {
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+            background-size: 200% 100%;
+            animation: shimmer 3s infinite;
+        }
+
+        /* iPhone Frame */
+        .iphone-frame {
+            width: 300px;
+            height: 620px;
+            border-radius: 44px;
+            border: 6px solid #1a1a1a;
+            background: #000;
+            position: relative;
+            box-shadow:
+                0 0 0 2px #333,
+                0 30px 80px rgba(0,0,0,0.5),
+                inset 0 0 4px rgba(255,255,255,0.1);
+            overflow: hidden;
+        }
+        .iphone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 28px;
+            background: #1a1a1a;
+            border-radius: 0 0 18px 18px;
+            z-index: 30;
+        }
+        .iphone-notch::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            background: #333;
+            border-radius: 50%;
+        }
+        .iphone-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 38px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .iphone-home-bar {
+            position: absolute;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 4px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+            z-index: 30;
+        }
+
+        /* Phone Screen Transitions */
+        .phone-view { transition: all 0.4s cubic-bezier(0.4,0,0.2,1); }
+        .phone-view.entering { animation: slide-up 0.35s ease-out forwards; }
+
+        /* Stamp Visual */
+        .stamp-circle {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 700;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .stamp-filled {
+            background: #1E3A8A;
+            color: white;
+            box-shadow: 0 2px 8px rgba(30,58,138,0.4);
+        }
+        .stamp-empty {
+            background: #E5E7EB;
+            color: #9CA3AF;
+        }
+        .stamp-filling {
+            animation: stamp-pop 0.5s cubic-bezier(0.68,-0.55,0.27,1.55) forwards;
+            background: #1E3A8A;
+            color: white;
+        }
+
+        /* Gold Mode */
+        .gold-mode { background: linear-gradient(135deg, #F59E0B, #D97706, #B45309) !important; }
+
+        /* Scroll Reveal */
+        .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.4,0,0.2,1); }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+
+        /* Confetti */
+        .confetti-piece {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            animation: confetti-fall 2s ease-in forwards;
+        }
+
+        /* Mobile Nav */
+        .mobile-menu {
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .mobile-menu.open {
+            transform: translateX(0);
+            visibility: visible;
+            pointer-events: auto;
+        }
+        .mobile-menu-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 9998;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .mobile-menu-overlay.open {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        /* Custom scrollbar on phone */
+        .phone-scroll::-webkit-scrollbar { width: 0; }
+
+        /* Glass effect */
+        .glass { background: rgba(255,255,255,0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+
+        @media (max-width: 768px) {
+            .iphone-frame { width: 260px; height: 540px; border-radius: 38px; }
+            .iphone-notch { width: 100px; height: 24px; border-radius: 0 0 14px 14px; }
+        }
+        @media (max-width: 380px) {
+            .iphone-frame { width: 240px; height: 500px; border-radius: 34px; }
+        }
+    </style>
+</head>
+
+<body class="bg-white text-stone-800 antialiased selection:bg-mare-blue selection:text-white overflow-x-hidden">
+
+    <!-- ==================== NAVIGATION ==================== -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300 bg-white/0 overflow-visible">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <!-- Logo -->
+                <a href="#" class="flex items-center gap-2">
+                    <img src="Logo vectorizado.png" alt="BRANDIA" class="h-9 w-9 object-contain rounded-lg">
+                    <span class="font-bold text-lg tracking-tight">
+                        <span class="text-mare-blue">BRAND</span><span class="text-amber-500">IA</span>
+                    </span>
+                </a>
+
+                <!-- Desktop Links -->
+                <div class="hidden md:flex items-center space-x-8 text-sm font-medium text-stone-500">
+                    <a href="#demo" class="hover:text-mare-blue transition">Demo en Vivo</a>
+                    <a href="#features" class="hover:text-mare-blue transition">Funciones</a>
+                    <a href="#how" class="hover:text-mare-blue transition">Cómo Funciona</a>
+                    <a href="#roadmap" class="hover:text-mare-blue transition">Roadmap</a>
+                    <a href="#brandia" class="hover:text-amber-500 transition font-bold">BRANDIA</a>
+                </div>
+
+                <!-- CTA -->
+                <div class="flex items-center gap-3">
+                    <a href="#contact" class="hidden sm:inline-flex bg-mare-blue text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-900 transition items-center gap-2 shadow-lg shadow-mare-blue/20">
+                        Agendar Demo
+                        <i class="fas fa-arrow-right text-xs"></i>
+                    </a>
+                    <!-- Hamburger -->
+                    <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-stone-600">
+                        <i class="fas fa-bars text-xl" id="menu-icon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu Overlay (fuera del nav para evitar conflictos) -->
+    <div id="mobile-menu-overlay" class="mobile-menu-overlay" onclick="toggleMobileMenu()" aria-hidden="true"></div>
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="mobile-menu fixed top-0 right-0 w-80 max-w-[85vw] h-full bg-white shadow-2xl z-[9999] p-8 flex flex-col gap-6 overflow-y-auto">
+        <div class="flex items-center justify-between">
+            <a href="#" onclick="toggleMobileMenu()" class="flex items-center gap-3">
+                <img src="Logo vectorizado.png" alt="BRANDIA" class="h-14 w-14 object-contain">
+                <span class="font-black text-xl tracking-tight text-stone-900 uppercase">BRAND<span class="text-amber-500">IA</span></span>
+            </a>
+            <button onclick="toggleMobileMenu()" class="p-2 text-stone-400 hover:text-stone-700 -mr-2">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </div>
+        <nav class="flex flex-col gap-4 pt-2">
+            <a href="#demo" onclick="toggleMobileMenu()" class="text-lg font-bold text-stone-800 hover:text-mare-blue py-2 border-b border-stone-100">Demo en Vivo</a>
+            <a href="#features" onclick="toggleMobileMenu()" class="text-lg font-bold text-stone-800 hover:text-mare-blue py-2 border-b border-stone-100">Funciones</a>
+            <a href="#how" onclick="toggleMobileMenu()" class="text-lg font-bold text-stone-800 hover:text-mare-blue py-2 border-b border-stone-100">Cómo Funciona</a>
+            <a href="#roadmap" onclick="toggleMobileMenu()" class="text-lg font-bold text-stone-800 hover:text-mare-blue py-2 border-b border-stone-100">Roadmap</a>
+            <a href="#brandia" onclick="toggleMobileMenu()" class="text-lg font-bold text-amber-600 hover:text-amber-700 py-2 border-b border-stone-100">BRANDIA</a>
+        </nav>
+        <a href="https://wa.me/5491171189084" target="_blank" rel="noopener" onclick="toggleMobileMenu()" class="mt-6 bg-emerald-500 text-white px-6 py-4 rounded-xl text-center font-bold flex items-center justify-center gap-2"><i class="fab fa-whatsapp"></i> Agendar Demo</a>
+    </div>
+
+    <!-- ==================== HERO ==================== -->
+    <header class="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-slate-950 via-mare-blue to-blue-900">
+        <!-- Decorative Elements -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute top-20 right-[10%] w-[500px] h-[500px] bg-brandia-warm rounded-full blur-[150px] opacity-10"></div>
+            <div class="absolute bottom-0 left-[5%] w-[400px] h-[400px] bg-blue-500 rounded-full blur-[120px] opacity-10"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border border-white/[0.03] rounded-full"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-white/[0.05] rounded-full"></div>
+            <!-- Grid Pattern -->
+            <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(circle, white 1px, transparent 1px); background-size: 40px 40px;"></div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 relative z-10 w-full">
+            <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+                <!-- Text -->
+                <div class="text-center lg:text-left">
+                    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs font-semibold tracking-wider text-white/70 mb-8">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        CASO DE ÉXITO: MARE CAFÉ
+                    </div>
+
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black leading-[1.05] text-white mb-6 tracking-tight">
+                        Fidelización
+                        <br>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-400 to-amber-500">Clientes</span>
+                        <br>
+                        <span class="text-white/60 text-3xl sm:text-4xl lg:text-5xl font-medium">para Cafeterías</span>
+                    </h1>
+
+                    <p class="text-base sm:text-lg text-white/50 mb-10 max-w-lg mx-auto lg:mx-0 leading-relaxed">
+                        Eliminamos los cartones de papel. Tu cliente acumula sellos desde su celular, vos ves las métricas en tiempo real. <strong class="text-white/80">Todo desde el navegador.</strong>
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                        <a href="#demo" class="group px-8 py-4 bg-white text-mare-blue rounded-2xl font-bold text-base hover:bg-stone-100 transition-all shadow-xl shadow-white/10 flex items-center justify-center gap-3">
+                            <i class="fas fa-play text-xs p-2 bg-mare-blue/10 rounded-full group-hover:bg-mare-blue/20 transition"></i>
+                            Probar Demo en Vivo
+                        </a>
+                        <a href="#features" class="px-8 py-4 border border-white/15 text-white rounded-2xl font-bold hover:bg-white/5 transition-all flex items-center justify-center gap-2">
+                            <i class="fas fa-grid-2 text-sm opacity-60"></i>
+                            Ver Funciones
+                        </a>
+                    </div>
+
+                    <!-- Trust Badges -->
+                    <div class="mt-12 flex flex-wrap items-center gap-6 justify-center lg:justify-start text-white/30 text-xs font-medium">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-shield-halved text-emerald-400/60"></i>
+                            Anti-fraude integrado
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-mobile-screen text-blue-400/60"></i>
+                            Sin descargas
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-chart-line text-amber-400/60"></i>
+                            Métricas real-time
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hero Visual: Mini Phone Preview -->
+                <div class="flex justify-center lg:justify-end">
+                    <div class="relative">
+                        <!-- Glow behind phone -->
+                        <div class="absolute inset-0 bg-gradient-to-b from-amber-400/20 to-mare-blue/20 blur-[80px] scale-110 rounded-full"></div>
+
+                        <!-- Phone -->
+                        <div class="iphone-frame animate-float relative" style="animation-delay: 0.5s;">
+                            <div class="iphone-notch"></div>
+                            <div class="iphone-screen bg-mare-blue flex flex-col items-center justify-center p-8 text-center">
+                                <img src="logo-mare.png" alt="Mare Café" class="w-40 h-40 object-contain mb-6 rounded-full">
+                                <h3 class="text-2xl font-bold text-white font-display">Mare Cafe</h3>
+                                <p class="text-white/60 text-sm mt-1">Pastelería y Café de Especialidad</p>
+                                <div class="mt-8 w-full space-y-3">
+                                    <div class="bg-white text-mare-blue py-3 px-6 rounded-full font-bold text-sm flex items-center justify-center gap-2">
+                                        <i class="fas fa-user"></i> Soy Cliente
+                                    </div>
+                                    <div class="text-white/40 text-xs py-2">
+                                        <i class="fas fa-store text-[10px]"></i> Acceso Staff
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="iphone-home-bar"></div>
+                        </div>
+
+                        <!-- Floating stats -->
+                        <div class="absolute -left-16 top-24 bg-white rounded-2xl p-4 shadow-2xl hidden lg:flex items-center gap-3 animate-float" style="animation-delay: 1s;">
+                            <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-chart-line text-emerald-600"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs text-stone-400 font-medium">Retención</p>
+                                <p class="font-bold text-stone-800">+24%</p>
+                            </div>
+                        </div>
+
+                        <div class="absolute -right-12 bottom-32 bg-white rounded-2xl p-4 shadow-2xl hidden lg:flex items-center gap-3 animate-float" style="animation-delay: 2s;">
+                            <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-users text-amber-600"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs text-stone-400 font-medium">Clientes</p>
+                                <p class="font-bold text-stone-800">624</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll indicator -->
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/30 animate-bounce">
+            <span class="text-[10px] tracking-widest uppercase">Scroll</span>
+            <i class="fas fa-chevron-down text-xs"></i>
+        </div>
+    </header>
+
+    <!-- ==================== SOBRE BRANDIA (Quick Strip) ==================== -->
+    <section class="py-6 bg-stone-50 border-b border-stone-100">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-3">
+                    <img src="Logo vectorizado.png" alt="BRANDIA" class="h-8 w-8 object-contain rounded">
+                    <p class="text-sm text-stone-400 font-medium">
+                        <strong class="text-stone-700">BRAND<span class="text-amber-600">IA</span></strong> — Soluciones de fidelización digital para cafeterías en Argentina.
+                    </p>
+                </div>
+                <div class="flex items-center gap-6 text-xs text-stone-400">
+                    <span class="flex items-center gap-1.5"><i class="fas fa-location-dot text-mare-blue/60"></i> Mar del Plata</span>
+                    <span class="flex items-center gap-1.5"><i class="fas fa-rocket text-mare-blue/60"></i> Tecnología moderna</span>
+                    <span class="flex items-center gap-1.5"><i class="fas fa-mobile-screen text-mare-blue/60"></i> Sin descargas</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== INTERACTIVE DEMO ==================== -->
+    <section id="demo" class="py-20 sm:py-28 relative overflow-hidden">
+        <!-- Background -->
+        <div class="absolute inset-0 bg-gradient-to-b from-white via-stone-50/50 to-white pointer-events-none"></div>
+        <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-mare-blue/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+        <div class="max-w-7xl mx-auto px-4 relative z-10">
+            <div class="text-center mb-16 reveal">
+                <span class="text-mare-blue font-bold text-xs uppercase tracking-[0.2em]">Demo Interactivo</span>
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-stone-900 mt-3 tracking-tight">
+                    Probalo <span class="text-transparent bg-clip-text bg-gradient-to-r from-mare-blue to-blue-500">ahora mismo</span>
+                </h2>
+                <p class="text-stone-500 mt-4 max-w-xl mx-auto">Interactuá con la app tal como la usaría un cliente real de Mare Café. Tocá los botones, sumá sellos y canjeá tu premio.</p>
+            </div>
+
+            <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+                <!-- Demo Controls Panel (LEFT) -->
+                <div class="flex-1 order-2 lg:order-1 w-full max-w-md">
+                    <div class="space-y-6">
+                        <!-- Current View Label -->
+                        <div class="bg-stone-100 rounded-2xl p-6">
+                            <h4 class="font-bold text-stone-800 text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <i class="fas fa-hand-pointer text-mare-blue"></i>
+                                Controles de Demo
+                            </h4>
+                            <div class="space-y-3">
+                                <button onclick="phoneNavigate('landing')" class="demo-btn w-full text-left px-4 py-3 rounded-xl border-2 border-stone-200 hover:border-mare-blue/50 bg-white transition-all flex items-center gap-3 text-sm font-medium text-stone-600 hover:text-mare-blue">
+                                    <i class="fas fa-home w-5 text-center"></i>
+                                    <span>Pantalla de Inicio</span>
+                                </button>
+                                <button onclick="phoneNavigate('client')" class="demo-btn w-full text-left px-4 py-3 rounded-xl border-2 border-stone-200 hover:border-mare-blue/50 bg-white transition-all flex items-center gap-3 text-sm font-medium text-stone-600 hover:text-mare-blue">
+                                    <i class="fas fa-qrcode w-5 text-center"></i>
+                                    <span>Vista Cliente (Mi Tarjeta)</span>
+                                </button>
+                                <button onclick="phoneNavigate('staff')" class="demo-btn w-full text-left px-4 py-3 rounded-xl border-2 border-stone-200 hover:border-mare-blue/50 bg-white transition-all flex items-center gap-3 text-sm font-medium text-stone-600 hover:text-mare-blue">
+                                    <i class="fas fa-barcode w-5 text-center"></i>
+                                    <span>Vista Staff (Escáner)</span>
+                                </button>
+                                <button onclick="phoneNavigate('admin')" class="demo-btn w-full text-left px-4 py-3 rounded-xl border-2 border-stone-200 hover:border-mare-blue/50 bg-white transition-all flex items-center gap-3 text-sm font-medium text-stone-600 hover:text-mare-blue">
+                                    <i class="fas fa-chart-pie w-5 text-center"></i>
+                                    <span>Vista Admin (Panel)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Current State Info -->
+                        <div id="demo-info" class="bg-mare-blue/5 border border-mare-blue/10 rounded-2xl p-6">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-8 h-8 bg-mare-blue/10 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-info-circle text-mare-blue text-sm"></i>
+                                </div>
+                                <h5 class="font-bold text-stone-800 text-sm" id="demo-info-title">Pantalla de Inicio</h5>
+                            </div>
+                            <p class="text-xs text-stone-500 leading-relaxed" id="demo-info-desc">
+                                Esta es la pantalla que ve el usuario al entrar por primera vez. Puede elegir "Soy Cliente" para acceder a su tarjeta de fidelidad, o "Acceso Staff" si es empleado del local.
+                            </p>
+                        </div>
+
+                        <!-- Quick Action -->
+                        <div class="text-center">
+                            <button onclick="addDemoStamp()" id="add-stamp-btn" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-mare-blue to-blue-700 text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-mare-blue/30 transition-all active:scale-95">
+                                <i class="fas fa-plus-circle"></i>
+                                Sumar Sello al Cliente
+                            </button>
+                            <p class="text-xs text-stone-400 mt-2">Simulá que el barista escanea al cliente</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PHONE MOCKUP (CENTER/RIGHT) -->
+                <div class="order-1 lg:order-2 flex-shrink-0">
+                    <div class="relative">
+                        <!-- Glow -->
+                        <div class="absolute inset-0 bg-mare-blue/10 blur-[60px] scale-125 rounded-full pointer-events-none"></div>
+
+                        <div class="iphone-frame relative" id="demo-phone">
+                            <div class="iphone-notch"></div>
+                            <div class="iphone-screen" id="phone-screen">
+                                <!-- Screen content injected by JS -->
+                            </div>
+                            <div class="iphone-home-bar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== FEATURES ==================== -->
+    <section id="features" class="py-20 sm:py-28 bg-slate-950 text-white relative overflow-hidden">
+        <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(circle, white 1px, transparent 1px); background-size: 32px 32px;"></div>
+        <div class="absolute top-0 left-0 w-96 h-96 bg-mare-blue/20 rounded-full blur-[150px] pointer-events-none"></div>
+
+        <div class="max-w-7xl mx-auto px-4 relative z-10">
+            <div class="text-center mb-16 reveal">
+                <span class="text-amber-400 font-bold text-xs uppercase tracking-[0.2em]">Beneficios</span>
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black mt-3 tracking-tight">
+                    Todo lo que tu negocio
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-400">necesita</span>
+                </h2>
+                <p class="text-white/40 mt-4 max-w-xl mx-auto">Funciones reales que ya están funcionando en cafeterías. No es una demo, es el producto.</p>
+            </div>
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Feature 1 -->
+                <div class="reveal group glass rounded-2xl p-6 hover:bg-white/10 transition-all">
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-mare-blue rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-blue-500/20">
+                        <i class="fas fa-qrcode text-white text-lg"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Código único por cliente</h3>
+                    <p class="text-white/40 text-sm leading-relaxed">Cada cliente tiene su propio código en el celular. Funciona incluso sin internet.</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="reveal group glass rounded-2xl p-6 hover:bg-white/10 transition-all">
+                    <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-emerald-500/20">
+                        <i class="fas fa-shield-halved text-white text-lg"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Protección anti-trampa</h3>
+                    <p class="text-white/40 text-sm leading-relaxed">Si alguien intenta sumar sellos dos veces el mismo día, el sistema lo detecta y pide tu autorización.</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="reveal group glass rounded-2xl p-6 hover:bg-white/10 transition-all">
+                    <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-amber-500/20">
+                        <i class="fas fa-gift text-white text-lg"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Canje fácil y visual</h3>
+                    <p class="text-white/40 text-sm leading-relaxed">Al completar los sellos, el código se pone dorado. Tu equipo lo escanea y entrega el premio al instante.</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="reveal group glass rounded-2xl p-6 hover:bg-white/10 transition-all">
+                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-purple-500/20">
+                        <i class="fas fa-ranking-star text-white text-lg"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Clientes que vuelven más</h3>
+                    <p class="text-white/40 text-sm leading-relaxed">Los clientes frecuentes ganan reconocimiento. Pueden guardar su bebida favorita y sentirse especiales.</p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="reveal group glass rounded-2xl p-6 hover:bg-white/10 transition-all">
+                    <div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-pink-500/20">
+                        <i class="fas fa-envelope-open-text text-white text-lg"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Enviá promos a tus clientes</h3>
+                    <p class="text-white/40 text-sm leading-relaxed">Enviá ofertas, novedades y flyers por email. Llega directo a quien ya te conoce.</p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="reveal group glass rounded-2xl p-6 hover:bg-white/10 transition-all">
+                    <div class="w-12 h-12 bg-gradient-to-br from-cyan-500 to-teal-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-cyan-500/20">
+                        <i class="fas fa-gear text-white text-lg"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">100% tu marca</h3>
+                    <p class="text-white/40 text-sm leading-relaxed">Cada café tiene su propia app: tu logo, tus colores, tus reglas de sellos. Todo a tu medida.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== HOW IT WORKS ==================== -->
+    <section id="how" class="py-20 sm:py-28 bg-white">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="text-center mb-16 reveal">
+                <span class="text-mare-blue font-bold text-xs uppercase tracking-[0.2em]">Proceso</span>
+                <h2 class="text-3xl sm:text-4xl font-black text-stone-900 mt-3">Cómo funciona en 3 pasos</h2>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8 lg:gap-12">
+                <div class="reveal text-center group">
+                    <div class="w-20 h-20 mx-auto bg-mare-blue/5 rounded-3xl flex items-center justify-center mb-6 group-hover:bg-mare-blue group-hover:text-white transition-all duration-300 border-2 border-mare-blue/10 group-hover:border-mare-blue">
+                        <i class="fas fa-mobile-screen text-mare-blue text-2xl group-hover:text-white transition"></i>
+                    </div>
+                    <div class="text-mare-blue font-black text-5xl opacity-10 mb-2">01</div>
+                    <h3 class="text-xl font-bold text-stone-900 mb-2">Cliente muestra QR</h3>
+                    <p class="text-stone-500 text-sm leading-relaxed">Entra desde su celular, sin instalar nada. Su código único aparece al instante.</p>
+                </div>
+
+                <div class="reveal text-center group" style="animation-delay: 0.2s">
+                    <div class="w-20 h-20 mx-auto bg-mare-blue/5 rounded-3xl flex items-center justify-center mb-6 group-hover:bg-mare-blue group-hover:text-white transition-all duration-300 border-2 border-mare-blue/10 group-hover:border-mare-blue">
+                        <i class="fas fa-barcode text-mare-blue text-2xl group-hover:text-white transition"></i>
+                    </div>
+                    <div class="text-mare-blue font-black text-5xl opacity-10 mb-2">02</div>
+                    <h3 class="text-xl font-bold text-stone-900 mb-2">Staff escanea</h3>
+                    <p class="text-stone-500 text-sm leading-relaxed">Tu equipo escanea en 2 segundos. El sistema suma el sello y evita usos indebidos automáticamente.</p>
+                </div>
+
+                <div class="reveal text-center group" style="animation-delay: 0.4s">
+                    <div class="w-20 h-20 mx-auto bg-mare-blue/5 rounded-3xl flex items-center justify-center mb-6 group-hover:bg-mare-blue group-hover:text-white transition-all duration-300 border-2 border-mare-blue/10 group-hover:border-mare-blue">
+                        <i class="fas fa-gift text-mare-blue text-2xl group-hover:text-white transition"></i>
+                    </div>
+                    <div class="text-mare-blue font-black text-5xl opacity-10 mb-2">03</div>
+                    <h3 class="text-xl font-bold text-stone-900 mb-2">Canjea premio</h3>
+                    <p class="text-stone-500 text-sm leading-relaxed">Al completar 7 sellos, el QR se vuelve dorado. El staff lo escanea para canjear la bebida gratis.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== MARE CAFÉ CASE STUDY ==================== -->
+    <section class="py-20 sm:py-28 bg-stone-50 border-y border-stone-100">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="text-center mb-16 reveal">
+                <span class="text-mare-blue font-bold text-xs uppercase tracking-[0.2em]">Cliente Destacado</span>
+                <h2 class="text-3xl sm:text-4xl font-black text-stone-900 mt-3">Mare Café</h2>
+                <p class="text-stone-500 mt-3 font-display text-lg italic">"Pastelería y Café de Especialidad"</p>
+            </div>
+
+            <div class="reveal bg-white rounded-3xl shadow-xl border border-stone-100 overflow-hidden">
+                <div class="grid md:grid-cols-2">
+                    <!-- Left: Info -->
+                    <div class="p-8 sm:p-12 flex flex-col justify-center">
+                        <div class="flex items-center gap-4 mb-8">
+                            <img src="logo-mare.png" alt="Mare Café" class="w-24 h-24 rounded-full object-contain shadow-lg">
+                            <div>
+                                <h3 class="text-2xl font-bold text-stone-900">Mare Cafe</h3>
+                                <p class="text-stone-400 text-sm">Mar del Plata, Argentina</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4 mb-8">
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 rounded-full flex items-center justify-center shrink-0 overflow-hidden shadow-md">
+                                    <img src="logo-mare.png" alt="Mare Café" class="w-full h-full object-contain">
+                                </div>
+                                <div>
+                                    <p class="font-bold text-stone-800 text-sm">Branding Personalizado</p>
+                                    <p class="text-xs text-stone-500">Tu logo y colores en toda la app</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
+                                    <i class="fas fa-stamp text-amber-600"></i>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-stone-800 text-sm">7 sellos = 1 bebida gratis</p>
+                                    <p class="text-xs text-stone-500">Programa de fidelidad flexible</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
+                                    <i class="fas fa-newspaper text-emerald-600"></i>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-stone-800 text-sm">News Feed Activo</p>
+                                    <p class="text-xs text-stone-500">Promos y novedades para tus clientes</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-stone-50 rounded-2xl p-6 border border-stone-100">
+                            <p class="text-xs text-stone-500 uppercase tracking-wider font-bold mb-4">Lo que incluye para tu negocio</p>
+                            <ul class="space-y-3 text-sm text-stone-600">
+                                <li class="flex items-center gap-2"><i class="fas fa-check text-emerald-500 w-4 shrink-0"></i> Tu logo y colores en la app</li>
+                                <li class="flex items-center gap-2"><i class="fas fa-check text-emerald-500 w-4 shrink-0"></i> Programa de sellos personalizado</li>
+                                <li class="flex items-center gap-2"><i class="fas fa-check text-emerald-500 w-4 shrink-0"></i> Link a tu menú o redes</li>
+                                <li class="flex items-center gap-2"><i class="fas fa-check text-emerald-500 w-4 shrink-0"></i> Noticias y promos para tus clientes</li>
+                                <li class="flex items-center gap-2"><i class="fas fa-check text-emerald-500 w-4 shrink-0"></i> Soporte directo por WhatsApp</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Right: Stats Visual -->
+                    <div class="bg-gradient-to-br from-mare-blue to-blue-900 p-8 sm:p-12 text-white flex flex-col justify-center">
+                        <h4 class="text-white/60 text-xs uppercase tracking-widest font-bold mb-8">Métricas Proyectadas</h4>
+
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="bg-white/10 rounded-2xl p-5 backdrop-blur-sm">
+                                <p class="text-3xl font-black">624</p>
+                                <p class="text-white/50 text-xs mt-1">Clientes Registrados</p>
+                            </div>
+                            <div class="bg-white/10 rounded-2xl p-5 backdrop-blur-sm">
+                                <p class="text-3xl font-black text-amber-300">~600</p>
+                                <p class="text-white/50 text-xs mt-1">Ventas/Semana</p>
+                            </div>
+                            <div class="bg-white/10 rounded-2xl p-5 backdrop-blur-sm">
+                                <p class="text-3xl font-black text-emerald-300">+24%</p>
+                                <p class="text-white/50 text-xs mt-1">Retención</p>
+                            </div>
+                            <div class="bg-white/10 rounded-2xl p-5 backdrop-blur-sm">
+                                <p class="text-3xl font-black">4.8x</p>
+                                <p class="text-white/50 text-xs mt-1">ROI Estimado</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-3">
+                            <div class="bg-amber-500 text-black px-2 py-0.5 rounded text-[10px] font-black uppercase">Live</div>
+                            <p class="text-white/60 text-xs">Tu app siempre disponible, datos seguros y respaldo en la nube</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== ROADMAP ==================== -->
+    <section id="roadmap" class="py-20 sm:py-28 bg-white">
+        <div class="max-w-5xl mx-auto px-4">
+            <div class="text-center mb-16 reveal">
+                <span class="text-mare-blue font-bold text-xs uppercase tracking-[0.2em]">Evolución</span>
+                <h2 class="text-3xl sm:text-4xl font-black text-stone-900 mt-3">Roadmap del Producto</h2>
+            </div>
+
+            <div class="space-y-0 reveal">
+                <!-- Phase 1 -->
+                <div class="flex gap-6 items-start pb-12 relative">
+                    <div class="flex flex-col items-center shrink-0">
+                        <div class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white font-bold shadow-lg shadow-emerald-500/30">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="w-0.5 h-full bg-stone-200 mt-3"></div>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <h4 class="font-bold text-lg text-stone-900">Fase 1 — MVP</h4>
+                            <span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase">Completado</span>
+                        </div>
+                        <p class="text-stone-500 text-sm">Tarjeta digital, escaneo QR, sistema de sellos, panel admin, sistema anti-fraude con cooldown 24hs, PWA.</p>
+                    </div>
+                </div>
+
+                <!-- Phase 2 -->
+                <div class="flex gap-6 items-start pb-12 relative">
+                    <div class="flex flex-col items-center shrink-0">
+                        <div class="w-12 h-12 bg-mare-blue rounded-2xl flex items-center justify-center text-white font-bold shadow-lg shadow-mare-blue/30 animate-pulse">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <div class="w-0.5 h-full bg-stone-200 mt-3"></div>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <h4 class="font-bold text-lg text-stone-900">Fase 2 — Gamificación & Marketing</h4>
+                            <span class="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase">En Desarrollo</span>
+                        </div>
+                        <p class="text-stone-500 text-sm">Niveles de cliente, campañas por email, editor de flyers, segmentación por nivel, news feed in-app.</p>
+                    </div>
+                </div>
+
+                <!-- Phase 3 -->
+                <div class="flex gap-6 items-start pb-12 relative">
+                    <div class="flex flex-col items-center shrink-0">
+                        <div class="w-12 h-12 bg-stone-200 rounded-2xl flex items-center justify-center text-stone-400 font-bold">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <div class="w-0.5 h-full bg-stone-200 mt-3"></div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg text-stone-900 mb-1">Fase 3 — Escala</h4>
+                        <p class="text-stone-500 text-sm">Dashboard de analytics avanzado, integración con POS, white-label para múltiples cafés, notificaciones push.</p>
+                    </div>
+                </div>
+
+                <!-- Phase 4 -->
+                <div class="flex gap-6 items-start">
+                    <div class="flex flex-col items-center shrink-0">
+                        <div class="w-12 h-12 bg-stone-200 rounded-2xl flex items-center justify-center text-stone-400 font-bold">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg text-stone-900 mb-1">Fase 4 — Marketplace</h4>
+                        <p class="text-stone-500 text-sm">Red de cafeterías conectada, rewards cruzados entre locales, app unificada "Ruta del Café" de Mar del Plata.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== ABOUT BRANDIA ==================== -->
+    <section id="brandia" class="py-20 sm:py-28 bg-stone-100 text-stone-900 relative overflow-hidden">
+        <!-- Background Effects -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-500/10 rounded-full blur-[150px]"></div>
+            <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(circle, #78716c 1px, transparent 1px); background-size: 40px 40px;"></div>
+        </div>
+
+        <div class="max-w-6xl mx-auto px-4 relative z-10">
+            <!-- Header with Logo -->
+            <div class="text-center mb-16 reveal">
+                <div class="inline-block mb-8 bg-white rounded-3xl p-8 sm:p-12 shadow-xl border border-stone-200">
+                    <img src="Logo vectorizado.png" alt="BRANDIA" class="w-[180px] h-[180px] sm:w-[260px] sm:h-[260px] object-contain mx-auto">
+                </div>
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-stone-900">
+                    Detrás del proyecto:
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600">BRAND IA</span>
+                </h2>
+                <p class="text-stone-500 mt-4 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">
+                    BRANDIA es nuestra firma de tecnología y diseño. Creamos soluciones digitales que combinan <strong class="text-stone-800">inteligencia artificial</strong>, branding estratégico y desarrollo full-stack para negocios locales.
+                </p>
+            </div>
+
+            <!-- Brand Showcase Grid -->
+            <div class="grid md:grid-cols-2 gap-8 mb-16 reveal">
+                <!-- Post 1: Brand Grids -->
+                <div class="group relative rounded-3xl overflow-hidden border border-stone-200 shadow-lg hover:border-amber-500/50 hover:shadow-xl transition-all duration-500 bg-white">
+                    <img src="BRANDIA POST 1.png" alt="BRANDIA - Brand Grids & Visual Hierarchy" class="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                    <div class="absolute bottom-0 left-0 right-0 p-6">
+                        <p class="text-amber-400 text-xs font-bold uppercase tracking-widest mb-1">Identidad Visual</p>
+                        <p class="text-white font-bold text-lg">Brand Grids & Visual Hierarchy</p>
+                        <p class="text-white/50 text-sm mt-1">Cada proyecto BRANDIA nace desde una grilla tipográfica y un sistema de diseño propio.</p>
+                    </div>
+                </div>
+
+                <!-- Post 2: Full Ecosystem -->
+                <div class="group relative rounded-3xl overflow-hidden border border-stone-200 shadow-lg hover:border-amber-500/50 hover:shadow-xl transition-all duration-500 bg-white">
+                    <img src="BRANDIA POST 2.png" alt="BRANDIA - Ecosistema Digital Completo" class="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                    <div class="absolute bottom-0 left-0 right-0 p-6">
+                        <p class="text-amber-400 text-xs font-bold uppercase tracking-widest mb-1">Ecosistema Digital</p>
+                        <p class="text-white font-bold text-lg">Web + App + Brandbook</p>
+                        <p class="text-white/50 text-sm mt-1">Entregamos presencia completa: web responsive, app móvil, redes sociales y manual de marca.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BRANDIA Capabilities -->
+            <div class="reveal grid sm:grid-cols-3 gap-6 mb-12">
+                <div class="bg-white border border-stone-200 rounded-2xl p-6 text-center hover:border-amber-500/40 hover:shadow-lg transition shadow-sm">
+                    <div class="w-14 h-14 mx-auto bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-amber-500/20">
+                        <i class="fas fa-wand-magic-sparkles text-white text-xl"></i>
+                    </div>
+                    <h4 class="font-bold text-stone-900 mb-2">Branding + IA</h4>
+                    <p class="text-stone-500 text-sm">Diseño de marca potenciado con herramientas de inteligencia artificial para resultados profesionales.</p>
+                </div>
+                <div class="bg-white border border-stone-200 rounded-2xl p-6 text-center hover:border-mare-blue/40 hover:shadow-lg transition shadow-sm">
+                    <div class="w-14 h-14 mx-auto bg-gradient-to-br from-mare-blue to-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
+                        <i class="fas fa-code text-white text-xl"></i>
+                    </div>
+                    <h4 class="font-bold text-stone-900 mb-2">Desarrollo Full-Stack</h4>
+                    <p class="text-stone-500 text-sm">Apps hechas a medida para tu negocio, no plantillas genéricas.</p>
+                </div>
+                <div class="bg-white border border-stone-200 rounded-2xl p-6 text-center hover:border-emerald-500/40 hover:shadow-lg transition shadow-sm">
+                    <div class="w-14 h-14 mx-auto bg-gradient-to-br from-emerald-400 to-green-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/20">
+                        <i class="fas fa-store text-white text-xl"></i>
+                    </div>
+                    <h4 class="font-bold text-stone-900 mb-2">Foco en Comercio Local</h4>
+                    <p class="text-stone-500 text-sm">Entendemos al dueño de café que necesita resultados, no tecnología compleja.</p>
+                </div>
+            </div>
+
+            <!-- Brand Statement -->
+            <div class="reveal text-center">
+                <div class="inline-flex items-center gap-6 bg-white border border-stone-200 rounded-3xl px-12 py-8 shadow-xl">
+                    <img src="Logo vectorizado.png" alt="BRANDIA" class="h-20 w-20 sm:h-24 sm:w-24 object-contain">
+                    <div class="text-left">
+                        <p class="text-stone-900 font-bold text-lg sm:text-xl">BRAND<span class="text-amber-500">IA</span></p>
+                        <p class="text-stone-500 text-sm sm:text-base">Donde la marca se encuentra con la inteligencia artificial.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== CTA / CONTACT ==================== -->
+    <section id="contact" class="py-20 sm:py-28 bg-gradient-to-br from-slate-950 via-mare-blue to-blue-900 text-white relative overflow-hidden">
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-[150px]"></div>
+            <div class="absolute bottom-0 left-0 w-80 h-80 bg-blue-400/10 rounded-full blur-[120px]"></div>
+        </div>
+
+        <div class="max-w-3xl mx-auto px-4 text-center relative z-10">
+            <div class="reveal">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-white/60 mb-8">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    PRIMEROS 5 CLIENTES — CONDICIONES ESPECIALES
+                </div>
+
+                <h2 class="text-4xl sm:text-5xl font-black mb-6 tracking-tight">
+                    ¿Querés esto para
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-400">tu café</span>?
+                </h2>
+                <p class="text-white/40 text-lg mb-10 max-w-xl mx-auto">
+                    Primer mes de prueba gratis. Setup sin cargo. Soporte directo por WhatsApp. Sin permanencia.
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+                    <a href="https://wa.me/5491171189084" class="px-8 py-4 bg-emerald-500 text-white rounded-2xl font-bold text-base hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3">
+                        <i class="fab fa-whatsapp text-xl"></i>
+                        Agendar Demo Gratis
+                    </a>
+                    <a href="https://linktr.ee/brandia.lat" target="_blank" class="px-8 py-4 border border-white/15 text-white/70 rounded-2xl font-bold hover:bg-white/5 transition-all flex items-center justify-center gap-2">
+                        <i class="fas fa-link"></i>
+                        Linktree
+                    </a>
+                </div>
+
+                <!-- Offer Grid -->
+                <div class="grid sm:grid-cols-2 gap-3 max-w-lg mx-auto">
+                    <div class="glass rounded-xl p-4 flex items-center gap-3 text-left">
+                        <i class="fas fa-gift text-amber-400"></i>
+                        <span class="text-sm text-white/70">Primer mes de prueba gratis</span>
+                    </div>
+                    <div class="glass rounded-xl p-4 flex items-center gap-3 text-left">
+                        <i class="fas fa-tools text-blue-400"></i>
+                        <span class="text-sm text-white/70">Setup sin cargo</span>
+                    </div>
+                    <div class="glass rounded-xl p-4 flex items-center gap-3 text-left">
+                        <i class="fas fa-headset text-emerald-400"></i>
+                        <span class="text-sm text-white/70">Actualizaciones y mejoras sin costo</span>
+                    </div>
+                    <div class="glass rounded-xl p-4 flex items-center gap-3 text-left">
+                        <i class="fas fa-bullhorn text-pink-400"></i>
+                        <span class="text-sm text-white/70">Post de lanzamiento</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== FOOTER ==================== -->
+    <footer class="bg-[#0A0A0A] text-white/40 py-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6 pb-8 border-b border-white/5">
+                <div class="flex items-center gap-4">
+                    <div class="bg-white rounded-2xl p-2.5 shadow-lg">
+                        <img src="Logo vectorizado.png" alt="BRANDIA" class="h-14 w-14 sm:h-16 sm:w-16 object-contain">
+                    </div>
+                    <span class="font-bold text-white text-xl sm:text-2xl tracking-tight">BRAND<span class="text-amber-400">IA</span></span>
+                </div>
+                <div class="flex items-center gap-6 text-xs">
+                    <a href="#" class="hover:text-white transition">Instagram</a>
+                    <a href="#" class="hover:text-white transition">LinkedIn</a>
+                    <a href="#" class="hover:text-white transition">GitHub</a>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 text-xs">
+                <p>
+                    &copy; 2026 BRANDIA. Fidelización Digital para Cafeterías. Mar del Plata, Argentina.
+                </p>
+                <p>
+                    Developed by <strong class="text-white/60">Ariel Emiliano Jimenez</strong>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==================== JAVASCRIPT ==================== -->
+    <script>
+    // ============================================================
+    // STATE
+    // ============================================================
+    const APP = {
+        currentView: 'landing',
+        stamps: 3,
+        maxStamps: 7,
+        userName: 'Laura',
+        level: 1,
+        goldMode: false,
+        scanCount: 12,
+        totalClients: 624,
+        todayScans: 48,
+    };
+
+    // ============================================================
+    // NAVIGATION
+    // ============================================================
+    function toggleMobileMenu() {
+        const menu = document.getElementById('mobile-menu');
+        const overlay = document.getElementById('mobile-menu-overlay');
+        menu.classList.toggle('open');
+        overlay.classList.toggle('open');
+        document.body.classList.toggle('overflow-hidden', menu.classList.contains('open'));
+    }
+
+    // Navbar scroll effect
+    window.addEventListener('scroll', () => {
+        const nav = document.getElementById('navbar');
+        if (window.scrollY > 50) {
+            nav.classList.add('bg-white/95', 'backdrop-blur-md', 'shadow-sm', 'border-b', 'border-stone-100');
+            nav.classList.remove('bg-white/0');
+        } else {
+            nav.classList.remove('bg-white/95', 'backdrop-blur-md', 'shadow-sm', 'border-b', 'border-stone-100');
+            nav.classList.add('bg-white/0');
+        }
+    });
+
+    // ============================================================
+    // SCROLL REVEAL
+    // ============================================================
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // ============================================================
+    // PHONE SIMULATOR
+    // ============================================================
+    const VIEWS = {
+        landing: {
+            title: 'Pantalla de Inicio',
+            desc: 'Esta es la pantalla que ve el usuario al entrar por primera vez. Puede elegir "Soy Cliente" para acceder a su tarjeta de fidelidad, o "Acceso Staff" si es empleado del local.'
+        },
+        client: {
+            title: 'Dashboard del Cliente',
+            desc: 'El cliente ve su código QR único, el progreso de sellos, y puede canjear su premio cuando completa los 7 sellos. Tocá "Sumar Sello" para simular un escaneo.'
+        },
+        staff: {
+            title: 'Portal del Staff',
+            desc: 'El barista usa esta vista para escanear los QR de los clientes. Incluye contador de escaneos del día y botón de escáner con cámara.'
+        },
+        admin: {
+            title: 'Panel de Administración',
+            desc: 'El dueño del café ve métricas en tiempo real: clientes totales, escaneos del día, campañas de marketing y configuración del programa.'
+        }
+    };
+
+    function phoneNavigate(view) {
+        APP.currentView = view;
+        APP.goldMode = false;
+
+        // Update info panel
+        document.getElementById('demo-info-title').textContent = VIEWS[view].title;
+        document.getElementById('demo-info-desc').textContent = VIEWS[view].desc;
+
+        // Highlight active btn
+        document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('border-mare-blue', 'bg-mare-blue/5'));
+        const btns = document.querySelectorAll('.demo-btn');
+        const idx = ['landing','client','staff','admin'].indexOf(view);
+        if (btns[idx]) { btns[idx].classList.add('border-mare-blue', 'bg-mare-blue/5'); }
+
+        // Render
+        renderPhone();
+    }
+
+    function renderPhone() {
+        const screen = document.getElementById('phone-screen');
+        screen.style.opacity = '0';
+        screen.style.transform = 'scale(0.95)';
+
+        setTimeout(() => {
+            switch(APP.currentView) {
+                case 'landing': screen.innerHTML = renderLanding(); break;
+                case 'client': screen.innerHTML = renderClient(); break;
+                case 'staff': screen.innerHTML = renderStaff(); break;
+                case 'admin': screen.innerHTML = renderAdmin(); break;
+            }
+            screen.style.transition = 'all 0.35s cubic-bezier(0.4,0,0.2,1)';
+            screen.style.opacity = '1';
+            screen.style.transform = 'scale(1)';
+        }, 150);
+    }
+
+    // --- LANDING SCREEN ---
+    function renderLanding() {
+        return `
+            <div class="h-full flex flex-col items-center justify-center p-6 text-center" style="background-color: #1E3A8A;">
+                <div class="pt-6"></div>
+                <img src="logo-mare.png" alt="Mare" class="w-32 h-32 object-contain mb-4 rounded-full shadow-xl" />
+                <h2 class="text-xl font-bold text-white" style="font-family:'Playfair Display',serif">Mare Cafe</h2>
+                <p class="text-white/50 text-xs mt-1">Pastelería y Café de Especialidad</p>
+                <div class="mt-8 w-full space-y-3 px-4">
+                    <button onclick="phoneNavigate('client')" class="w-full bg-white text-[#1E3A8A] py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 hover:bg-stone-100 transition active:scale-95">
+                        <i class="fas fa-user"></i> Soy Cliente
+                    </button>
+                    <button onclick="phoneNavigate('staff')" class="w-full text-white/40 text-xs py-2 hover:text-white/60 transition">
+                        <i class="fas fa-store"></i> Acceso Staff
+                    </button>
+                </div>
+                <div class="mt-auto pb-4 text-[8px] text-white/20 tracking-widest uppercase">
+                    Desarrollado por <b class="text-white/40">BRANDIA</b>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- CLIENT SCREEN ---
+    function renderClient() {
+        const isReward = APP.stamps >= APP.maxStamps;
+        const bgColor = APP.goldMode ? '#000' : '#F5F5DC';
+        const textColor = APP.goldMode ? '#F59E0B' : '#1E3A8A';
+        const progress = Math.min((APP.stamps / APP.maxStamps) * 100, 100);
+
+        let stampsHTML = '';
+        for (let i = 0; i < APP.maxStamps; i++) {
+            if (i < APP.stamps) {
+                stampsHTML += `<div class="stamp-circle stamp-filled"><i class="fas fa-check text-[8px]"></i></div>`;
+            } else {
+                stampsHTML += `<div class="stamp-circle stamp-empty">${i+1}</div>`;
+            }
+        }
+
+        const headerBg = APP.goldMode ? 'background:#000;color:#F59E0B' : 'background:white';
+        const qrBorderColor = APP.goldMode ? '#FFF' : '#1E3A8A';
+        const qrBg = APP.goldMode ? 'background:linear-gradient(135deg,#F59E0B,#D97706);' : 'background:white;';
+
+        return `
+            <div class="h-full flex flex-col phone-scroll overflow-y-auto" style="background:${bgColor}; color:${textColor}">
+                <!-- Header -->
+                <div class="sticky top-0 z-10 px-4 py-3 flex items-center justify-between shadow-sm" style="${headerBg}">
+                    <button onclick="phoneNavigate('landing')" class="opacity-50 hover:opacity-100 transition text-xs">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <img src="logo-mare.png" alt="Mare" class="h-8 w-8 rounded-full object-cover" />
+                    <div class="text-[10px] opacity-40"><i class="fas fa-sign-out-alt"></i></div>
+                </div>
+
+                <div class="flex-1 p-4 space-y-4 pt-2">
+                    <!-- Welcome -->
+                    <div class="text-center pt-2">
+                        ${APP.goldMode ?
+                            `<h3 class="text-lg font-bold animate-pulse">Momento Mágico! ✨</h3>
+                             <p class="text-xs opacity-60">Mostrá este código al barista</p>` :
+                            `<h3 class="text-lg font-bold">Hola, ${APP.userName} 👋</h3>
+                             <p class="text-xs opacity-60">Pastelería y Café de Especialidad</p>`
+                        }
+                    </div>
+
+                    <!-- QR Card -->
+                    <div class="rounded-2xl p-5 flex flex-col items-center shadow-lg border transition-all" style="${qrBg} border-color:${qrBorderColor}20">
+                        <p class="font-bold text-xs mb-1" style="color:${APP.goldMode ? '#000' : '#1E3A8A'}">
+                            ${APP.goldMode ? 'CANJE DE PREMIO' : 'Tu Tarjeta de Fidelidad'}
+                        </p>
+                        <p class="text-[10px] opacity-40 mb-3">${APP.goldMode ? 'Válido por 1 Bebida Gratis' : 'Escaneá esto en caja'}</p>
+
+                        <!-- Fake QR -->
+                        <div class="w-32 h-32 rounded-xl border-4 flex items-center justify-center relative" style="border-color:${qrBorderColor}">
+                            <div class="grid grid-cols-7 gap-[2px]">
+                                ${generateFakeQR()}
+                            </div>
+                            ${APP.goldMode ? `<div class="absolute inset-0 flex items-center justify-center opacity-30"><i class="fas fa-gift text-4xl text-amber-700"></i></div>` : ''}
+                        </div>
+                    </div>
+
+                    ${isReward && !APP.goldMode ? `
+                        <button onclick="activateGoldMode()" class="w-full py-3 bg-gradient-to-r from-orange-400 to-orange-600 text-white rounded-xl font-bold text-sm shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 active:scale-95" style="animation:gold-pulse 2s infinite">
+                            <i class="fas fa-gift"></i> RECLAMAR MI PREMIO
+                        </button>
+                    ` : ''}
+
+                    ${!APP.goldMode ? `
+                    <!-- Stamps Section -->
+                    <div class="bg-white rounded-2xl p-4 shadow border border-stone-100">
+                        <h4 class="font-bold text-sm flex items-center gap-2 mb-3" style="color:#1E3A8A">
+                            <i class="fas fa-gift text-orange-500"></i> Tus Recompensas
+                        </h4>
+                        <div class="flex items-center gap-3 bg-stone-50 p-3 rounded-xl">
+                            <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-coffee text-orange-500"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-xl" style="color:#1E3A8A">${APP.stamps} <span class="text-xs font-normal text-stone-400">/ ${APP.maxStamps}</span></p>
+                                <p class="text-[10px] text-stone-400">Sellos acumulados</p>
+                            </div>
+                        </div>
+                        <!-- Progress Bar -->
+                        <div class="mt-3 w-full bg-stone-100 rounded-full h-2">
+                            <div class="bg-orange-500 h-2 rounded-full transition-all duration-700" style="width:${progress}%"></div>
+                        </div>
+                        <p class="text-[10px] text-center mt-1.5 text-stone-400">
+                            ${isReward ? '¡Tenés una bebida gratis disponible!' : `Faltan ${APP.maxStamps - APP.stamps} sellos para tu premio.`}
+                        </p>
+
+                        <!-- Stamp Circles -->
+                        <div class="flex justify-center gap-2 mt-4 flex-wrap">
+                            ${stampsHTML}
+                        </div>
+                    </div>
+
+                    <!-- Menu Button -->
+                    <button class="w-full py-2.5 bg-slate-900 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2">
+                        <i class="fas fa-coffee"></i> Ver Nuestro Menú
+                    </button>
+                    ` : `
+                    <!-- Gold Mode Info -->
+                    <div class="text-center p-4 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                        <p class="text-amber-300 text-xs font-bold">El staff escaneará tu QR dorado</p>
+                        <button onclick="redeemReward()" class="mt-3 text-xs underline opacity-60 hover:opacity-100">Simular Canje</button>
+                    </div>
+                    `}
+                </div>
+
+                <!-- Bottom branding -->
+                <div class="text-center py-2 text-[8px] opacity-30">Powered by BRANDIA</div>
+            </div>
+        `;
+    }
+
+    // --- STAFF SCREEN ---
+    function renderStaff() {
+        return `
+            <div class="h-full flex flex-col bg-stone-50">
+                <!-- Nav -->
+                <div class="bg-white px-4 py-3 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <img src="logo-mare.png" alt="Mare" class="h-8 w-8 rounded-full object-cover" />
+                        <span class="font-bold text-stone-800 text-sm">Staff Portal</span>
+                    </div>
+                    <button onclick="phoneNavigate('landing')" class="text-xs text-stone-400">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+
+                <div class="flex-1 p-4 pt-6 space-y-4 phone-scroll overflow-y-auto">
+                    <!-- Stats -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                            <p class="text-stone-400 text-[10px] font-bold uppercase">Escaneos Hoy</p>
+                            <p class="text-2xl font-black text-stone-800 mt-1">${APP.todayScans}</p>
+                        </div>
+                        <button onclick="simulateScan()" class="p-4 rounded-xl text-white text-left flex flex-col justify-between hover:shadow-lg transition active:scale-95" style="background:#1E3A8A">
+                            <p class="text-white/80 text-[10px] font-bold">Escanear</p>
+                            <div class="flex items-center justify-between mt-2">
+                                <p class="text-xs text-white/60">Cámara</p>
+                                <i class="fas fa-qrcode text-xl opacity-60"></i>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Scanner Simulation -->
+                    <div class="bg-white rounded-xl shadow-sm border border-stone-100 overflow-hidden">
+                        <div class="bg-black aspect-video flex items-center justify-center relative">
+                            <div class="w-32 h-32 border-2 border-white/30 rounded-xl"></div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="w-40 h-0.5 bg-red-500/60 animate-pulse"></div>
+                            </div>
+                            <p class="absolute bottom-3 text-white/40 text-[10px]">Apuntá la cámara al QR del cliente</p>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="bg-white rounded-xl p-4 shadow-sm border border-stone-100">
+                        <h4 class="font-bold text-xs text-stone-800 mb-3">
+                            <i class="fas fa-clock text-stone-400"></i> Actividad Reciente
+                        </h4>
+                        <div class="space-y-2" id="staff-activity">
+                            <div class="flex items-center gap-2 text-[10px] text-stone-400 py-2 border-b border-stone-50">
+                                <i class="fas fa-check-circle text-emerald-500"></i>
+                                <span>Sello agregado — Laura M. (hace 3 min)</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-[10px] text-stone-400 py-2 border-b border-stone-50">
+                                <i class="fas fa-gift text-amber-500"></i>
+                                <span>Canje procesado — Carlos R. (hace 15 min)</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-[10px] text-stone-400 py-2">
+                                <i class="fas fa-check-circle text-emerald-500"></i>
+                                <span>Sello agregado — María G. (hace 22 min)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Link -->
+                    <button onclick="phoneNavigate('admin')" class="w-full text-xs text-mare-blue font-bold bg-blue-50 py-2 rounded-lg hover:bg-blue-100 transition">
+                        <i class="fas fa-arrow-right"></i> Ir al Panel Admin
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- ADMIN SCREEN ---
+    function renderAdmin() {
+        return `
+            <div class="h-full flex flex-col bg-stone-50">
+                <!-- Nav -->
+                <div class="bg-white px-4 py-3 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <img src="logo-mare.png" alt="Mare" class="h-6 w-6 rounded-full object-cover" />
+                        <span class="font-bold text-stone-800 text-xs">Admin Panel</span>
+                    </div>
+                    <button onclick="phoneNavigate('landing')" class="text-[10px] text-stone-400 font-medium">
+                        Cerrar
+                    </button>
+                </div>
+
+                <div class="flex-1 p-4 pt-4 space-y-4 phone-scroll overflow-y-auto">
+                    <!-- Metric Cards -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-white p-3 rounded-xl shadow-sm border border-stone-100">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <i class="fas fa-users text-mare-blue text-[10px]"></i>
+                                <p class="text-[10px] text-stone-400 font-medium">Clientes</p>
+                            </div>
+                            <p class="text-xl font-black text-stone-800">${APP.totalClients}</p>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl shadow-sm border border-stone-100">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <i class="fas fa-barcode text-emerald-500 text-[10px]"></i>
+                                <p class="text-[10px] text-stone-400 font-medium">Escaneos Hoy</p>
+                            </div>
+                            <p class="text-xl font-black text-emerald-600">${APP.todayScans}</p>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl shadow-sm border border-stone-100">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <i class="fas fa-gift text-amber-500 text-[10px]"></i>
+                                <p class="text-[10px] text-stone-400 font-medium">Canjes Mes</p>
+                            </div>
+                            <p class="text-xl font-black text-amber-600">18</p>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl shadow-sm border border-stone-100">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <i class="fas fa-chart-line text-purple-500 text-[10px]"></i>
+                                <p class="text-[10px] text-stone-400 font-medium">Retención</p>
+                            </div>
+                            <p class="text-xl font-black text-purple-600">+24%</p>
+                        </div>
+                    </div>
+
+                    <!-- Chart Simulation -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                        <h4 class="font-bold text-xs text-stone-800 mb-3">Escaneos (7 días)</h4>
+                        <div class="flex items-end gap-1.5 h-20">
+                            ${[35,42,28,55,48,62,45].map((v,i) => `
+                                <div class="flex-1 rounded-t" style="height:${v}%;background:${i===5?'#1E3A8A':'#E5E7EB'};transition:all 0.5s;transition-delay:${i*0.1}s"></div>
+                            `).join('')}
+                        </div>
+                        <div class="flex justify-between mt-1 text-[8px] text-stone-300">
+                            <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+                        </div>
+                    </div>
+
+                    <!-- Recent Campaign -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                        <h4 class="font-bold text-xs text-stone-800 mb-3">
+                            <i class="fas fa-bullhorn text-stone-400"></i> Campañas
+                        </h4>
+                        <div class="bg-mare-blue/5 p-3 rounded-lg border border-mare-blue/10 flex items-center gap-3">
+                            <div class="bg-mare-blue text-white px-2 py-0.5 rounded text-[8px] font-bold shrink-0">ACTIVA</div>
+                            <div>
+                                <p class="text-xs font-bold text-stone-700">"Lluvia y Café"</p>
+                                <p class="text-[10px] text-stone-400">Enviada a 150 clientes</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Config Preview -->
+                    <div class="bg-stone-800 p-3 rounded-xl text-[9px] text-stone-300 overflow-x-auto">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-check-circle text-emerald-400"></i>
+                            <span>7 sellos = 1 premio · News feed activo · Colores personalizados</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // ============================================================
+    // DEMO ACTIONS
+    // ============================================================
+    function addDemoStamp() {
+        if (APP.currentView !== 'client') {
+            phoneNavigate('client');
+            setTimeout(addDemoStamp, 500);
+            return;
+        }
+
+        if (APP.stamps < APP.maxStamps) {
+            APP.stamps++;
+            APP.todayScans++;
+            renderPhone();
+        } else {
+            // Already full
+            if (!APP.goldMode) {
+                activateGoldMode();
+            }
+        }
+    }
+
+    function activateGoldMode() {
+        APP.goldMode = true;
+        renderPhone();
+    }
+
+    function redeemReward() {
+        APP.stamps = 0;
+        APP.level++;
+        APP.goldMode = false;
+        renderPhone();
+
+        // Brief celebration
+        setTimeout(() => {
+            const screen = document.getElementById('phone-screen');
+            const overlay = document.createElement('div');
+            overlay.className = 'absolute inset-0 bg-black/80 flex items-center justify-center z-50 animate-fade-in';
+            overlay.innerHTML = `
+                <div class="text-center p-6 bg-white rounded-2xl mx-4 shadow-2xl">
+                    <div class="text-4xl mb-3">🎉</div>
+                    <h3 class="text-lg font-bold text-stone-800">¡Nivel ${APP.level}!</h3>
+                    <p class="text-xs text-stone-400 mt-1">Se restaron 7 sellos. ¡Gracias por elegirnos!</p>
+                    <button onclick="this.closest('.absolute').remove()" class="mt-4 px-6 py-2 bg-black text-white rounded-xl text-xs font-bold">Continuar</button>
+                </div>
+            `;
+            screen.style.position = 'relative';
+            screen.appendChild(overlay);
+        }, 300);
+    }
+
+    function simulateScan() {
+        APP.todayScans++;
+        const activity = document.getElementById('staff-activity');
+        if (activity) {
+            const names = ['Ana P.', 'Marco T.', 'Julia S.', 'Pedro L.', 'Sofia D.'];
+            const name = names[Math.floor(Math.random() * names.length)];
+            const newEntry = document.createElement('div');
+            newEntry.className = 'flex items-center gap-2 text-[10px] text-stone-400 py-2 border-b border-stone-50 animate-fade-in';
+            newEntry.innerHTML = `<i class="fas fa-check-circle text-emerald-500"></i><span>Sello agregado — ${name} (ahora)</span>`;
+            activity.insertBefore(newEntry, activity.firstChild);
+        }
+    }
+
+    // ============================================================
+    // HELPERS
+    // ============================================================
+    function generateFakeQR() {
+        let html = '';
+        const pattern = [
+            1,1,1,1,1,1,1, 1,0,1,0,1,0,1, 1,1,1,1,1,1,1,
+            1,0,0,0,0,0,1, 0,1,0,1,0,1,0, 1,0,0,0,0,0,1,
+            1,0,1,1,1,0,1, 1,0,1,1,0,0,1, 1,0,1,1,1,0,1,
+            0,0,0,0,0,0,0, 1,1,0,1,0,1,0, 0,0,0,0,0,0,0,
+            1,1,1,0,1,0,1, 0,0,1,0,1,0,1, 1,0,0,1,0,1,0,
+            1,0,0,0,0,0,1, 0,1,0,0,1,0,0, 0,1,1,0,1,0,1,
+            1,1,1,1,1,1,1, 0,1,0,1,0,1,0, 1,1,1,1,1,1,1
+        ];
+        for (let i = 0; i < 49; i++) {
+            const filled = pattern[i % pattern.length];
+            const color = APP.goldMode ? (filled ? '#92400E' : '#FDE68A') : (filled ? '#1E3A8A' : '#E5E7EB');
+            html += `<div style="width:3px;height:3px;background:${color};border-radius:0.5px"></div>`;
+        }
+        return html;
+    }
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+        phoneNavigate('landing');
+
+        // Mark first button as active
+        const btns = document.querySelectorAll('.demo-btn');
+        if (btns[0]) btns[0].classList.add('border-mare-blue', 'bg-mare-blue/5');
+    });
+
+    // Close mobile menu on outside click
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('mobile-menu');
+        const overlay = document.getElementById('mobile-menu-overlay');
+        const isOpen = menu.classList.contains('open');
+        if (isOpen && !menu.contains(e.target) && !e.target.closest('[onclick*="toggleMobileMenu"]') && !overlay.contains(e.target)) {
+            menu.classList.remove('open');
+            overlay.classList.remove('open');
+            document.body.classList.remove('overflow-hidden');
+        }
+    });
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+    </script>
+
+</body>
+</html>

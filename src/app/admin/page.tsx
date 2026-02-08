@@ -342,91 +342,152 @@ export default function AdminDashboard() {
     if (loading) return <div className="flex h-screen items-center justify-center bg-gray-50 text-blue-900 font-bold animate-pulse">Cargando Panel...</div>;
 
     return (
-        <main className="min-h-screen bg-gray-50 font-sans flex flex-col md:flex-row">
+        <main className="min-h-screen bg-gray-50 font-sans flex flex-col md:flex-row pb-20 md:pb-0">
 
-            {/* Sidebar Desktop / Mobile Header */}
-            <aside className="md:w-64 bg-[#1E3A8A] text-white flex flex-col md:min-h-screen shadow-2xl z-20">
-                <div className="p-6 flex items-center justify-center md:justify-start gap-4 border-b border-blue-800/50">
+            {/* --- MOBILE HEADER (Super Lindo / Glassmorphic) --- */}
+            <header className="md:hidden fixed top-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-md z-30 flex items-center justify-between px-6 rounded-b-3xl shadow-sm border-b border-white/20">
+                <div className="flex items-center gap-3">
+                    {config.assets?.logo ? (
+                        <img src={config.assets.logo} alt="Logo" className="h-12 w-auto object-contain drop-shadow-sm" />
+                    ) : (
+                        <div className="w-10 h-10 rounded-full bg-[#8B5E3C] flex items-center justify-center text-white font-fredoka font-bold text-xl shadow-md">P</div>
+                    )}
+                    <div className="flex flex-col">
+                        <h1 className="font-fredoka font-bold text-[#5D4037] text-xl tracking-tight leading-none">
+                            {activeTab === 'overview' && 'Hola, Admin! 👋'}
+                            {activeTab === 'clients' && 'Tus Clientes 👥'}
+                            {activeTab === 'marketing' && 'Novedades ✨'}
+                            {activeTab === 'settings' && 'Ajustes ⚙️'}
+                            {activeTab === 'activity' && 'Actividad 🕒'}
+                        </h1>
+                        <p className="text-[#8D6E63] text-xs font-medium">Perezoso Café</p>
+                    </div>
+                </div>
+                <button
+                    onClick={() => router.push('/staff')}
+                    className="relative p-2 rounded-2xl bg-[#FFF8E1] hover:bg-[#FFECB3] transition shadow-sm border border-[#FFE082]"
+                >
+                    <Scan size={20} className="text-[#F57F17]" />
+                </button>
+            </header>
+
+
+            {/* --- SIDEBAR (Desktop Only) --- */}
+            <aside
+                className="hidden md:flex w-72 text-white flex-col h-screen sticky top-0 shadow-2xl z-40 transition-all duration-300"
+                style={{ backgroundColor: config.theme.primaryColor }}
+            >
+                <div className="h-24 flex items-center justify-center px-6 border-b border-white/10">
                     {config.assets?.logo ? (
                         <img
                             src={config.assets.logo}
                             alt="Logo"
-                            className="h-56 w-auto object-contain"
+                            className="h-16 w-auto object-contain transition-transform hover:scale-105 duration-500"
                         />
                     ) : (
-                        <>
-                            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                                <TrendingUp size={18} className="text-[#1E3A8A]" />
-                            </div>
-                            <div>
-                                <h1 className="font-playfair font-bold text-lg tracking-wide">MARE CAFE</h1>
-                                <p className="text-xs text-blue-200">Admin Control</p>
-                            </div>
-                        </>
+                        <h1 className="font-playfair font-bold text-2xl tracking-wide">{config.name}</h1>
                     )}
                 </div>
 
-                <nav className="flex-1 p-4 grid grid-cols-2 md:flex md:flex-col gap-2 md:gap-3 overflow-y-auto content-start">
-                    <button onClick={() => setActiveTab('overview')} className={`flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 w-full p-2 md:p-3 rounded-xl transition-all duration-300 ${activeTab === 'overview' ? 'bg-white text-[#1E3A8A] font-bold shadow-lg' : 'text-blue-200 hover:bg-blue-800/50'}`}>
-                        <TrendingUp size={18} /> <span className="whitespace-nowrap text-[10px] md:text-base">Resumen</span>
-                    </button>
-                    <button onClick={() => setActiveTab('clients')} className={`flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 w-full p-2 md:p-3 rounded-xl transition-all duration-300 ${activeTab === 'clients' ? 'bg-white text-[#1E3A8A] font-bold shadow-lg' : 'text-blue-200 hover:bg-blue-800/50'}`}>
-                        <Users size={18} /> <span className="whitespace-nowrap text-[10px] md:text-base">Clientes</span>
-                    </button>
-                    <button onClick={() => setActiveTab('marketing')} className={`flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 w-full p-2 md:p-3 rounded-xl transition-all duration-300 ${activeTab === 'marketing' ? 'bg-white text-[#1E3A8A] font-bold shadow-lg' : 'text-blue-200 hover:bg-blue-800/50'}`}>
-                        <Mail size={18} /> <span className="whitespace-nowrap text-[10px] md:text-base">Novedades</span>
-                    </button>
-                    <button onClick={() => setActiveTab('settings')} className={`flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 w-full p-2 md:p-3 rounded-xl transition-all duration-300 ${activeTab === 'settings' ? 'bg-white text-[#1E3A8A] font-bold shadow-lg' : 'text-blue-200 hover:bg-blue-800/50'}`}>
-                        <Settings size={18} /> <span className="whitespace-nowrap text-[10px] md:text-base">Ajustes</span>
-                    </button>
-                    <button onClick={() => router.push('/staff')} className="flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 w-full p-2 md:p-3 rounded-xl text-emerald-300 hover:bg-emerald-900/20 transition-all font-semibold">
-                        <Scan size={18} /> <span className="whitespace-nowrap text-[10px] md:text-base">Escáner</span>
-                    </button>
-                    <button onClick={handleLogout} className="flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 w-full p-2 md:p-3 rounded-xl text-red-300 hover:bg-red-900/20 transition-all">
-                        <LogOut size={18} /> <span className="whitespace-nowrap text-[10px] md:text-base">Salir</span>
-                    </button>
-
-                    {/* Activity tab - only visible on desktop */}
-                    <button onClick={() => setActiveTab('activity')} className={`hidden md:flex flex-row items-center justify-start gap-3 w-full p-3 rounded-xl transition-all duration-300 ${activeTab === 'activity' ? 'bg-white text-[#1E3A8A] font-bold shadow-lg' : 'text-blue-200 hover:bg-blue-800/50'}`}>
-                        <Clock size={20} /> <span className="whitespace-nowrap text-base">Actividad</span>
-                    </button>
-
-                    <div className="hidden md:block mt-auto pb-4">
-                        <PoweredBy />
-                    </div>
+                <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                    <NavButton
+                        active={activeTab === 'overview'}
+                        onClick={() => setActiveTab('overview')}
+                        icon={<TrendingUp size={20} />}
+                        label="Resumen de Negocio"
+                        themeColor={config.theme.primaryColor}
+                    />
+                    <NavButton
+                        active={activeTab === 'clients'}
+                        onClick={() => setActiveTab('clients')}
+                        icon={<Users size={20} />}
+                        label="Base de Clientes"
+                        themeColor={config.theme.primaryColor}
+                    />
+                    <NavButton
+                        active={activeTab === 'marketing'}
+                        onClick={() => setActiveTab('marketing')}
+                        icon={<Mail size={20} />}
+                        label="Campañas & Novedades"
+                        themeColor={config.theme.primaryColor}
+                    />
+                    <NavButton
+                        active={activeTab === 'activity'}
+                        onClick={() => setActiveTab('activity')}
+                        icon={<Clock size={20} />}
+                        label="Actividad Reciente"
+                        themeColor={config.theme.primaryColor}
+                    />
+                    <NavButton
+                        active={activeTab === 'settings'}
+                        onClick={() => setActiveTab('settings')}
+                        icon={<Settings size={20} />}
+                        label="Configuración"
+                        themeColor={config.theme.primaryColor}
+                    />
                 </nav>
+
+                <div className="p-4 border-t border-white/10 space-y-2">
+                    <button
+                        onClick={() => router.push('/staff')}
+                        className="flex items-center gap-3 w-full p-3 rounded-xl text-emerald-200 hover:bg-white/10 hover:text-white transition-all group"
+                    >
+                        <Scan size={20} className="group-hover:scale-110 transition-transform" />
+                        <span className="font-medium text-sm">Ir al Escáner</span>
+                    </button>
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 w-full p-3 rounded-xl text-red-200 hover:bg-white/10 hover:text-white transition-all group"
+                    >
+                        <LogOut size={20} className="group-hover:scale-110 transition-transform" />
+                        <span className="font-medium text-sm">Cerrar Sesión</span>
+                    </button>
+                </div>
             </aside>
 
-            {/* Main Content */}
-            <div className="flex-1 overflow-y-auto h-[calc(100vh-80px)] md:h-screen bg-[#F8FAFC]">
-                <header className="bg-white p-6 shadow-sm flex justify-between items-center sticky top-0 z-10 backdrop-blur-md bg-white/80">
-                    <h2 className="text-2xl font-bold text-slate-800">
-                        {activeTab === 'overview' && 'Hola, Admin 👋'}
-                        {activeTab === 'clients' && 'Base de Datos de Clientes 👥'}
-                        {activeTab === 'marketing' && 'Novedades y Eventos 📨'}
-                        {activeTab === 'settings' && 'Configuración del Local ⚙️'}
-                    </h2>
-                    <div className="flex gap-4">
-                        <button className="relative p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition">
-                            <Bell size={20} className="text-slate-600" />
-                            <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-                        </button>
+            {/* --- MAIN CONTENT --- */}
+            <div className="flex-1 min-h-screen bg-[#F8FAFC] pt-16 md:pt-0 overflow-y-auto w-full">
+
+                {/* Desktop Header */}
+                <header className="hidden md:flex bg-white/80 backdrop-blur-md sticky top-0 z-20 px-8 py-5 border-b border-slate-100 justify-between items-center">
+                    <div>
+                        <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
+                            {activeTab === 'overview' && 'Hola, Admin 👋'}
+                            {activeTab === 'clients' && 'Gestión de Clientes'}
+                            {activeTab === 'marketing' && 'Marketing & Novedades'}
+                            {activeTab === 'settings' && 'Ajustes de Tienda'}
+                            {activeTab === 'activity' && 'Historial de Actividad'}
+                        </h2>
+                        <p className="text-slate-400 text-sm mt-1">
+                            {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div className="text-right hidden lg:block">
+                            <p className="text-sm font-bold text-slate-700">Cuenta Administrativa</p>
+                            <p className="text-xs text-slate-400">{config.name}</p>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 overflow-hidden shadow-sm">
+                            <img src={`https://ui-avatars.com/api/?name=Admin&background=random`} alt="Admin" className="w-full h-full object-cover" />
+                        </div>
                     </div>
                 </header>
 
-                <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto">
+                <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto pb-28 md:pb-8 pt-24 md:pt-0"> {/* Added pt-24 for fixed header */}
 
                     {/* OVERVIEW TAB */}
                     {activeTab === 'overview' && (
-                        <div className="space-y-8 animate-in fade-in duration-500">
-                            {/* Key Metrics */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500 slide-in-from-bottom-2">
+                            {/* Key Metrics (Super Lindo Style) */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                                 <MetricCard
                                     title="Clientes Totales"
                                     value={metrics.totalClients}
                                     icon={<Users size={24} />}
-                                    color="bg-blue-500"
+                                    color="bg-[#81D4FA] text-[#01579B]" // Pastel Blue
+                                    bgStyle="bg-[#E1F5FE]"
                                     trend="+12% este mes"
+                                    trendColor="text-[#0277BD] bg-[#B3E5FC]"
                                     isActive={activeChart === 'clients'}
                                     onClick={() => setActiveChart('clients')}
                                 />
@@ -434,8 +495,10 @@ export default function AdminDashboard() {
                                     title="Visitas Hoy"
                                     value={metrics.scansToday}
                                     icon={<Scan size={24} />}
-                                    color="bg-emerald-500"
+                                    color="bg-[#A5D6A7] text-[#1B5E20]" // Pastel Green
+                                    bgStyle="bg-[#E8F5E9]"
                                     trend="En vivo"
+                                    trendColor="text-[#2E7D32] bg-[#C8E6C9]"
                                     isActive={activeChart === 'scans'}
                                     onClick={() => setActiveChart('scans')}
                                 />
@@ -443,45 +506,49 @@ export default function AdminDashboard() {
                                     title="Premios Dados"
                                     value={metrics.redemptionsTotal}
                                     icon={<Gift size={24} />}
-                                    color="bg-purple-500"
+                                    color="bg-[#CE93D8] text-[#4A148C]" // Pastel Purple
+                                    bgStyle="bg-[#F3E5F5]"
                                     trend="Fidelidad alta"
+                                    trendColor="text-[#7B1FA2] bg-[#E1BEE7]"
                                     isActive={activeChart === 'redemptions'}
                                     onClick={() => setActiveChart('redemptions')}
                                 />
                             </div>
 
-                            {/* Chart Section */}
-                            <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 transition-all">
-                                <div className="flex justify-between items-end mb-6">
+                            {/* Chart Section (Rounded & Soft) */}
+                            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 transition-all hover:shadow-lg hover:-translate-y-1">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-4">
                                     <div>
-                                        <h3 className="text-lg font-bold text-slate-800">
+                                        <h3 className="text-xl font-fredoka font-bold text-[#5D4037]">
                                             {activeChart === 'scans' && 'Tendencia de Escaneos'}
                                             {activeChart === 'clients' && 'Crecimiento de Clientes'}
                                             {activeChart === 'redemptions' && 'Historial de Canjes'}
                                         </h3>
-                                        <p className="text-slate-400 text-sm">
+                                        <p className="text-[#A1887F] text-sm mt-1">
                                             {activeChart === 'scans' && 'Actividad de visitas diarias.'}
                                             {activeChart === 'clients' && 'Nuevos registros en la plataforma.'}
                                             {activeChart === 'redemptions' && 'Premios entregados por el staff.'}
                                         </p>
                                     </div>
-                                    <div className="flex gap-2 text-sm">
-                                        <span className="font-semibold text-slate-500 px-3 py-1 bg-slate-100 rounded-full">Últimos 7 días</span>
+                                    <div className="flex gap-2 text-xs font-bold text-[#8D6E63] bg-[#EFEBE9] px-4 py-2 rounded-full border border-[#D7CCC8]">
+                                        Últimos 7 días
                                     </div>
                                 </div>
-                                <div className="h-[300px] w-full">
+                                <div className="h-[250px] md:h-[350px] w-full">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <AreaChart data={chartData}>
                                             <defs>
                                                 <linearGradient id="colorMain" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor={activeChart === 'scans' ? '#1E3A8A' : activeChart === 'redemptions' ? '#8B5CF6' : '#3B82F6'} stopOpacity={0.3} />
-                                                    <stop offset="95%" stopColor={activeChart === 'scans' ? '#1E3A8A' : activeChart === 'redemptions' ? '#8B5CF6' : '#3B82F6'} stopOpacity={0} />
+                                                    <stop offset="5%" stopColor={activeChart === 'scans' ? '#A5D6A7' : activeChart === 'redemptions' ? '#CE93D8' : '#81D4FA'} stopOpacity={0.4} />
+                                                    <stop offset="95%" stopColor={activeChart === 'scans' ? '#A5D6A7' : activeChart === 'redemptions' ? '#CE93D8' : '#81D4FA'} stopOpacity={0} />
                                                 </linearGradient>
                                             </defs>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8' }} />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#A1887F', fontSize: 12, fontFamily: 'Fredoka' }} dy={10} />
                                             <Tooltip
-                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', padding: '16px', fontFamily: 'Fredoka' }}
+                                                itemStyle={{ fontSize: '14px', fontWeight: 600, color: '#5D4037' }}
+                                                labelStyle={{ color: '#A1887F', marginBottom: '8px', fontSize: '12px' }}
                                                 formatter={(value, name) => {
                                                     if (name === 'scans') return [value, 'Escaneos'];
                                                     if (name === 'redeems') return [value, 'Canjes'];
@@ -490,15 +557,14 @@ export default function AdminDashboard() {
                                                 }}
                                                 labelFormatter={(label) => `📅 ${label}`}
                                             />
-                                            {/* Conditionally render Areas based on activeChart */}
                                             {activeChart === 'scans' && (
-                                                <Area type="monotone" dataKey="scans" stroke="#1E3A8A" strokeWidth={3} fillOpacity={1} fill="url(#colorMain)" animationDuration={1000} />
+                                                <Area type="monotone" dataKey="scans" stroke="#4CAF50" strokeWidth={4} fillOpacity={1} fill="url(#colorMain)" animationDuration={1000} />
                                             )}
                                             {activeChart === 'redemptions' && (
-                                                <Area type="monotone" dataKey="redeems" stroke="#8B5CF6" strokeWidth={3} fillOpacity={1} fill="url(#colorMain)" animationDuration={1000} />
+                                                <Area type="monotone" dataKey="redeems" stroke="#9C27B0" strokeWidth={4} fillOpacity={1} fill="url(#colorMain)" animationDuration={1000} />
                                             )}
                                             {activeChart === 'clients' && (
-                                                <Area type="monotone" dataKey="newClients" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorMain)" animationDuration={1000} />
+                                                <Area type="monotone" dataKey="newClients" stroke="#2196F3" strokeWidth={4} fillOpacity={1} fill="url(#colorMain)" animationDuration={1000} />
                                             )}
                                         </AreaChart>
                                     </ResponsiveContainer>
@@ -509,7 +575,9 @@ export default function AdminDashboard() {
 
                     {/* CLIENTS TAB (NEW) */}
                     {activeTab === 'clients' && (
-                        <ClientsTab />
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <ClientsTab />
+                        </div>
                     )}
 
                     {/* MARKETING TAB */}
@@ -517,24 +585,24 @@ export default function AdminDashboard() {
                         <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
 
                             {/* Campaign Creator */}
-                            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
 
                                 <div className="xl:col-span-2 space-y-6">
-                                    <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-100">
-                                        <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                            <Send size={24} className="text-blue-600" /> Nueva Campaña
+                                    <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-lg transition-all">
+                                        <h3 className="text-xl font-fredoka font-bold text-[#5D4037] mb-6 flex items-center gap-2">
+                                            <div className="p-2 bg-[#E1F5FE] rounded-xl text-[#0288D1]"><Send size={20} /></div> Nueva Campaña
                                         </h3>
 
-                                        <div className="space-y-6">
+                                        <div className="space-y-8">
                                             {/* Audience */}
                                             <div>
-                                                <label className="text-sm font-semibold text-slate-600 mb-2 block">Audiencia Objetivo</label>
+                                                <label className="text-xs font-bold text-[#A1887F] uppercase tracking-wider mb-3 block">1. Audiencia Objetivo</label>
                                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                                     {['Todos', 'Nivel 2+ (Frecuentes)', 'Nivel 3+ (VIP)'].map((label) => (
                                                         <button
                                                             key={label}
                                                             onClick={() => setActiveAudience(label)}
-                                                            className={`py-2 px-4 rounded-xl border text-sm font-medium transition-all ${activeAudience === label ? 'bg-blue-50 border-blue-500 text-blue-700 ring-2 ring-blue-200' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                                            className={`py-3 px-4 rounded-xl border text-sm font-bold font-fredoka transition-all ${activeAudience === label ? 'bg-[#5D4037] border-[#5D4037] text-white shadow-lg shadow-orange-100' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                                                         >
                                                             {label}
                                                         </button>
@@ -544,24 +612,23 @@ export default function AdminDashboard() {
 
                                             {/* Template Selection */}
                                             <div>
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <label className="text-sm font-semibold text-slate-600 block">Selecciona un Diseño (Flyer)</label>
-                                                    <label className="cursor-pointer text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-full border border-blue-200 flex items-center gap-1 transition">
-                                                        <Plus size={14} /> Subir Propia
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <label className="text-xs font-bold text-[#A1887F] uppercase tracking-wider block">2. Selecciona Diseño</label>
+                                                    <label className="cursor-pointer text-xs font-bold text-[#5D4037] hover:bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100 flex items-center gap-1 transition">
+                                                        <Plus size={14} /> Subir Imagen
                                                         <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
                                                     </label>
                                                 </div>
-                                                {/* Use key to force re-render if needed, but here simple mapping is fine. */}
-                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                                                     {templates.map((src, idx) => (
-                                                        <div key={idx} className="relative aspect-[3/4] rounded-xl overflow-hidden cursor-pointer group border-2 border-transparent hover:border-blue-500 transition-all">
-                                                            <img src={src} alt={`Template ${idx}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <div key={idx} className="relative aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer group shadow-sm hover:shadow-xl transition-all border border-slate-100">
+                                                            <img src={src} alt={`Template ${idx}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
                                                                 <button
                                                                     onClick={() => openEditor(src)}
-                                                                    className="bg-white text-blue-900 text-xs font-bold px-3 py-1 rounded-full hover:scale-105 transition"
+                                                                    className="bg-white text-slate-900 text-sm font-bold px-5 py-2 rounded-full hover:scale-105 transition shadow-lg font-fredoka"
                                                                 >
-                                                                    Usar / Editar
+                                                                    Usar Diseño
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -569,19 +636,11 @@ export default function AdminDashboard() {
                                                 </div>
                                             </div>
 
-                                            {/* AI Smart Edit - Keeping as placeholder/beta */}
-                                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 opacity-60 pointer-events-none">
-                                                <div className="flex items-center justify-between mb-3">
-                                                    <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">✨ Agente de Marketing (Próximamente)</h4>
-                                                </div>
-                                                <p className="text-xs text-slate-400">La IA generará textos y ofertas automáticamente en la próxima versión.</p>
-                                            </div>
-
                                             <button
                                                 onClick={handleTestEmail}
-                                                className="w-full bg-slate-100 text-slate-600 py-2 rounded-xl font-semibold text-sm hover:bg-slate-200 transition"
+                                                className="w-full bg-[#EFEBE9] text-[#5D4037] py-3 rounded-xl font-fredoka font-bold text-sm hover:bg-[#D7CCC8] transition border border-[#D7CCC8]"
                                             >
-                                                🧪 Enviar Prueba Rápida (Sin Editor)
+                                                🧪 Enviar Prueba Rápida
                                             </button>
                                         </div>
                                     </div>
@@ -589,39 +648,47 @@ export default function AdminDashboard() {
 
                                 {/* History & Metrics */}
                                 <div className="space-y-6">
-                                    <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 h-full overflow-y-auto max-h-[800px]">
-                                        <h3 className="font-bold text-slate-800 mb-6">Historial de Envíos</h3>
-                                        <div className="space-y-6">
+                                    <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 h-full overflow-y-auto max-h-[800px]">
+                                        <h3 className="font-bold text-[#5D4037] mb-6 flex items-center gap-2 font-fredoka">
+                                            <Mail size={20} className="text-[#A1887F]" /> Historial de Envíos
+                                        </h3>
+                                        <div className="space-y-4">
                                             {campaigns.length === 0 && (
-                                                <div className="text-center text-slate-400 text-sm py-4">No hay campañas enviadas aún.</div>
+                                                <div className="text-center text-[#A1887F] text-sm py-10 border-2 border-dashed border-[#D7CCC8] rounded-2xl">
+                                                    No hay campañas enviadas aún.
+                                                </div>
                                             )}
                                             {campaigns.map((camp) => (
-                                                <div key={camp.id} className="group border-b border-slate-50 pb-4 last:border-0">
-                                                    <div className="relative aspect-video rounded-xl overflow-hidden mb-3 bg-gray-100 flex items-center justify-center border border-slate-100">
-                                                        {/* We can store image URL in metadata if we want to show it here later. For now placeholder or generic icon */}
-                                                        {camp.metadata?.imageUrl ? (
-                                                            <img src={camp.metadata.imageUrl} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <Mail className="text-slate-300" size={32} />
-                                                        )}
-                                                        <div className="absolute top-2 right-2">
-                                                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${camp.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                                                                {camp.status === 'active' ? 'Activa' : 'Inactiva'}
-                                                            </span>
+                                                <div key={camp.id} className="group p-3 rounded-2xl border border-slate-100 hover:border-orange-200 hover:bg-orange-50/30 transition-all cursor-pointer">
+                                                    <div className="flex gap-4">
+                                                        <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100">
+                                                            {camp.metadata?.imageUrl ? (
+                                                                <img src={camp.metadata.imageUrl} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-slate-300"><Mail size={20} /></div>
+                                                            )}
                                                         </div>
-                                                    </div>
-                                                    <h4 className="font-bold text-slate-800 text-sm truncate">{camp.title}</h4>
-                                                    <div className="flex justify-between items-center mt-2 text-xs text-slate-500">
-                                                        <span>{new Date(camp.created_at).toLocaleDateString()}</span>
-                                                        <label className="relative inline-flex items-center cursor-pointer">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={camp.status === 'active'}
-                                                                onChange={() => toggleCampaignStatus(camp.id, camp.status)}
-                                                                className="sr-only peer"
-                                                            />
-                                                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                                                        </label>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex justify-between items-start">
+                                                                <h4 className="font-bold text-[#5D4037] text-sm truncate pr-2 font-fredoka">{camp.title}</h4>
+                                                                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 scale-75 origin-right">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={camp.status === 'active'}
+                                                                        onChange={() => toggleCampaignStatus(camp.id, camp.status)}
+                                                                        className="sr-only peer"
+                                                                    />
+                                                                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#8D6E63]"></div>
+                                                                </label>
+                                                            </div>
+                                                            <p className="text-xs text-[#A1887F] mt-1 line-clamp-1">{camp.content}</p>
+                                                            <div className="flex justify-between items-center mt-2">
+                                                                <span className="text-[10px] text-[#D7CCC8] font-medium">{new Date(camp.created_at).toLocaleDateString()}</span>
+                                                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${camp.status === 'active' ? 'bg-[#E8F5E9] text-[#2E7D32]' : 'bg-slate-100 text-slate-500'}`}>
+                                                                    {camp.status === 'active' ? 'Activa' : 'Inactiva'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -636,46 +703,46 @@ export default function AdminDashboard() {
                     {/* STAFF ACTIVITY TAB */}
                     {activeTab === 'activity' && (
                         <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-                            <div className="bg-white p-6 rounded-3xl shadow-md border border-slate-100">
-                                <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                    <Scan size={24} className="text-blue-600" /> Registro de Actividad
+                            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+                                <h3 className="text-xl font-bold text-[#5D4037] mb-6 flex items-center gap-2 font-fredoka">
+                                    <div className="p-2 bg-[#E8F5E9] rounded-lg text-[#2E7D32]"><Scan size={20} /></div> Registro de Actividad
                                 </h3>
 
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
-                                            <tr className="border-b border-slate-100 text-slate-400 text-xs uppercase tracking-wider">
-                                                <th className="p-4 font-semibold">Fecha y Hora</th>
-                                                <th className="p-4 font-semibold">Staff (Simulado)</th>
-                                                <th className="p-4 font-semibold">Acción</th>
-                                                <th className="p-4 font-semibold">Cliente</th>
+                                            <tr className="border-b border-slate-100 text-[#A1887F] text-xs font-bold uppercase tracking-wider">
+                                                <th className="p-4">Fecha y Hora</th>
+                                                <th className="p-4">Staff</th>
+                                                <th className="p-4">Acción</th>
+                                                <th className="p-4">Cliente</th>
                                             </tr>
                                         </thead>
                                         <tbody className="text-slate-600 text-sm">
                                             {/* In a real app, map through 'logs' state */}
-                                            <tr className="border-b border-slate-50 hover:bg-slate-50 transition">
-                                                <td className="p-4">Hoy, 10:42 AM</td>
-                                                <td className="p-4 font-medium text-slate-800">Camarero 1</td>
-                                                <td className="p-4"><span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-xs font-bold">Escaneo</span></td>
-                                                <td className="p-4">juan.perez@gmail.com</td>
+                                            <tr className="border-b border-slate-50 hover:bg-slate-50 transition font-medium">
+                                                <td className="p-4 whitespace-nowrap text-[#5D4037]">Hoy, 10:42 AM</td>
+                                                <td className="p-4 text-[#5D4037]">Camarero 1</td>
+                                                <td className="p-4"><span className="bg-[#E8F5E9] text-[#2E7D32] px-3 py-1 rounded-full text-xs font-bold font-fredoka">Escaneo ✨</span></td>
+                                                <td className="p-4 text-[#8D6E63]">juan.perez@gmail.com</td>
                                             </tr>
-                                            <tr className="border-b border-slate-50 hover:bg-slate-50 transition">
-                                                <td className="p-4">Hoy, 09:15 AM</td>
-                                                <td className="p-4 font-medium text-slate-800">Admin (Tú)</td>
-                                                <td className="p-4"><span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-bold">Canje Premio</span></td>
-                                                <td className="p-4">maria.gomez@hotmail.com</td>
+                                            <tr className="border-b border-slate-50 hover:bg-slate-50 transition font-medium">
+                                                <td className="p-4 whitespace-nowrap text-[#5D4037]">Hoy, 09:15 AM</td>
+                                                <td className="p-4 text-[#5D4037]">Admin (Tú)</td>
+                                                <td className="p-4"><span className="bg-[#F3E5F5] text-[#7B1FA2] px-3 py-1 rounded-full text-xs font-bold font-fredoka">Canje Premio 🎁</span></td>
+                                                <td className="p-4 text-[#8D6E63]">maria.gomez@hotmail.com</td>
                                             </tr>
-                                            <tr className="border-b border-slate-50 hover:bg-slate-50 transition">
-                                                <td className="p-4">Ayer, 18:30 PM</td>
-                                                <td className="p-4 font-medium text-slate-800">Camarero 2</td>
-                                                <td className="p-4"><span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-xs font-bold">Escaneo</span></td>
-                                                <td className="p-4">carlos.lopez@yahoo.com</td>
+                                            <tr className="border-b border-slate-50 hover:bg-slate-50 transition font-medium">
+                                                <td className="p-4 whitespace-nowrap text-[#5D4037]">Ayer, 18:30 PM</td>
+                                                <td className="p-4 text-[#5D4037]">Camarero 2</td>
+                                                <td className="p-4"><span className="bg-[#E8F5E9] text-[#2E7D32] px-3 py-1 rounded-full text-xs font-bold font-fredoka">Escaneo ✨</span></td>
+                                                <td className="p-4 text-[#8D6E63]">carlos.lopez@yahoo.com</td>
                                             </tr>
                                         </tbody>
                                     </table>
                                 </div>
                                 <div className="mt-4 text-center">
-                                    <p className="text-xs text-slate-400">Mostrando últimos 3 movimientos.</p>
+                                    <button className="text-xs font-bold text-[#A1887F] hover:text-[#5D4037] transition font-fredoka">MOSTRAR MÁS</button>
                                 </div>
                             </div>
                         </div>
@@ -685,38 +752,45 @@ export default function AdminDashboard() {
                     {activeTab === 'settings' && (
                         <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="bg-white p-6 rounded-3xl shadow-md border border-slate-100">
-                                    <h3 className="text-lg font-bold text-slate-800 mb-6 border-b pb-2">Reglas de Negocio</h3>
+                                <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+                                    <h3 className="text-lg font-bold text-[#5D4037] mb-6 border-b border-slate-50 pb-4 flex items-center gap-2 font-fredoka">
+                                        <Settings size={20} className="text-[#A1887F]" /> Reglas de Negocio
+                                    </h3>
                                     <div className="space-y-6">
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition">
                                             <div>
-                                                <h4 className="font-semibold text-slate-700">Happy Hour (Puntos Dobles)</h4>
-                                                <p className="text-xs text-slate-400">Los clientes suman x2 sellos al escanear.</p>
+                                                <h4 className="font-bold text-[#5D4037] text-sm font-fredoka">Happy Hour (Puntos Dobles)</h4>
+                                                <p className="text-xs text-[#A1887F] mt-1">Los clientes suman x2 sellos al escanear.</p>
                                             </div>
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input type="checkbox" value="" className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#8D6E63]"></div>
                                             </label>
                                         </div>
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition">
                                             <div>
-                                                <h4 className="font-semibold text-slate-700">Solicitar PIN en Canjes</h4>
-                                                <p className="text-xs text-slate-400">Mayor seguridad al entregar premios.</p>
+                                                <h4 className="font-bold text-[#5D4037] text-sm font-fredoka">Solicitar PIN en Canjes</h4>
+                                                <p className="text-xs text-[#A1887F] mt-1">Mayor seguridad al entregar premios.</p>
                                             </div>
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input type="checkbox" value="" className="sr-only peer" defaultChecked />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#8D6E63]"></div>
                                             </label>
                                         </div>
                                     </div>
                                 </div>
 
 
-                                <div className="bg-white p-6 rounded-3xl shadow-md border border-slate-100">
-                                    <h3 className="text-lg font-bold text-slate-800 mb-6 border-b pb-2">Credenciales</h3>
+                                <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+                                    <h3 className="text-lg font-bold text-[#5D4037] mb-6 border-b border-slate-50 pb-4 flex items-center gap-2 font-fredoka">
+                                        <Users size={20} className="text-[#A1887F]" /> Credenciales Staff
+                                    </h3>
                                     <div className="space-y-4">
-                                        <button className="w-full py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition">
-                                            Actualizar Credenciales
+                                        <p className="text-sm text-[#A1887F]">
+                                            Desde aquí puedes regenerar los PINs de acceso para los camareros.
+                                        </p>
+                                        <button className="w-full py-4 rounded-xl bg-[#5D4037] text-white font-bold text-sm hover:bg-[#4E342E] transition shadow-lg shadow-orange-100 font-fredoka">
+                                            Actualizar Credenciales Tienda
                                         </button>
                                     </div>
                                 </div>
@@ -724,40 +798,116 @@ export default function AdminDashboard() {
                         </div>
                     )}
 
+
                 </div>
             </div>
-            {showEditor && (
-                <EmailEditor
-                    initialData={editorInitialData}
-                    onClose={() => setShowEditor(false)}
-                    onSend={handleSendFromEditor}
-                    audience={activeAudience}
-                    isSending={isSending}
+
+            {/* --- MOBILE BOTTOM NAVIGATION (Super Lindo / Floating Dock) --- */}
+            <nav className="md:hidden fixed bottom-6 left-4 right-4 h-[72px] bg-white/90 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.06)] flex justify-between items-center px-2 z-40">
+                <MobileNavItem
+                    active={activeTab === 'overview'}
+                    onClick={() => setActiveTab('overview')}
+                    icon={<TrendingUp size={24} />}
+                    label="Inicio"
+                    color="#5D4037"
                 />
-            )}
-        </main>
+                <MobileNavItem
+                    active={activeTab === 'clients'}
+                    onClick={() => setActiveTab('clients')}
+                    icon={<Users size={24} />}
+                    label="Clientes"
+                    color="#5D4037"
+                />
+
+                {/* Spacer for FAB */}
+                <div className="w-12"></div>
+
+                {/* FAB is now positioned absolutely relative to the viewport or nav, but here we can stick it in the middle visually */}
+                <button
+                    onClick={() => router.push('/staff')}
+                    className="absolute left-1/2 -translate-x-1/2 -top-6 w-16 h-16 bg-[#5D4037] rounded-full shadow-[0_8px_20px_rgba(93,64,55,0.4)] flex items-center justify-center text-white border-4 border-[#F5F5F5] transition-transform active:scale-95"
+                >
+                    <Scan size={28} />
+                </button>
+
+                <MobileNavItem
+                    active={activeTab === 'marketing'}
+                    onClick={() => setActiveTab('marketing')}
+                    icon={<Mail size={24} />}
+                    label="Promo"
+                    color="#5D4037"
+                />
+                <MobileNavItem
+                    active={activeTab === 'settings'}
+                    onClick={() => setActiveTab('settings')}
+                    icon={<Settings size={24} />}
+                    label="Ajustes"
+                    color="#5D4037"
+                />
+            </nav>
+
+
+            {
+                showEditor && (
+                    <EmailEditor
+                        initialData={editorInitialData}
+                        onClose={() => setShowEditor(false)}
+                        onSend={handleSendFromEditor}
+                        audience={activeAudience}
+                        isSending={isSending}
+                    />
+                )
+            }
+        </main >
     );
 }
 
-function MetricCard({ title, value, icon, color, trend, isActive, onClick }: any) {
+// --- Helper Components ---
+
+function NavButton({ active, onClick, icon, label, themeColor }: any) {
+    return (
+        <button
+            onClick={onClick}
+            className={`flex items-center gap-4 w-full p-3.5 rounded-xl transition-all duration-200 group ${active ? 'bg-white font-bold shadow-lg transform scale-105' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`}
+            style={{ color: active ? themeColor : undefined }}
+        >
+            <div className={`${active ? '' : 'opacity-70 group-hover:opacity-100'}`}>{icon}</div>
+            <span className="text-sm">{label}</span>
+        </button>
+    );
+}
+
+function MobileNavItem({ active, onClick, icon, label, color }: any) {
+    return (
+        <button
+            onClick={onClick}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-300 h-full rounded-2xl ${active ? 'bg-[#EFEBE9] -translate-y-2 pb-2' : 'hover:bg-slate-50'}`}
+        >
+            <div className={`p-1.5 rounded-full transition-colors ${active ? 'bg-[#5D4037] text-white shadow-md' : 'text-[#A1887F]'}`}>
+                {icon}
+            </div>
+            {active && <span className="text-[10px] font-bold text-[#5D4037] font-fredoka animate-in fade-in zoom-in duration-300">{label}</span>}
+        </button>
+    );
+}
+
+function MetricCard({ title, value, icon, color, bgStyle, trend, trendColor, isActive, onClick }: any) {
     return (
         <div
             onClick={onClick}
-            className={`bg-white p-5 rounded-3xl shadow-lg border transition-all cursor-pointer flex items-center gap-4 hover:scale-[1.02] ${isActive ? 'border-blue-500 ring-4 ring-blue-50/50' : 'border-slate-50'}`}
+            className={`bg-white p-5 rounded-[2rem] shadow-sm border transition-all cursor-pointer flex items-center gap-4 hover:shadow-lg hover:-translate-y-1 hover:scale-[1.02] ${isActive ? 'border-[#5D4037] ring-4 ring-orange-100' : 'border-slate-50'}`}
         >
-            <div className={`p-4 rounded-2xl text-white shadow-md ${color}`}>
+            <div className={`p-4 rounded-2xl shadow-inner ${color} ${bgStyle}`}>
                 {icon}
             </div>
             <div>
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">{title}</p>
-                <div className="flex items-baseline gap-2">
-                    <h3 className="text-3xl font-black text-slate-800">{value}</h3>
-                </div>
-                <p className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md inline-block mt-1">
+                <p className="text-[#A1887F] text-[10px] font-bold uppercase tracking-wider font-fredoka">{title}</p>
+                <h3 className="text-3xl font-black text-[#5D4037] leading-tight font-fredoka">{value}</h3>
+                <p className={`text-[10px] font-bold mt-1 px-2 py-0.5 rounded-full inline-block ${trendColor ? trendColor : (trend.includes('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-500')}`}>
                     {trend}
                 </p>
             </div>
-            {isActive && <div className="ml-auto w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>}
         </div>
     );
 }

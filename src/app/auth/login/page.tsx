@@ -166,7 +166,7 @@ function AuthContent() {
                         <img
                             src={config.assets.logo}
                             alt={config.name}
-                            className="w-64 mx-auto drop-shadow-2xl hover:scale-105 transition duration-700"
+                            className={`mx-auto drop-shadow-2xl hover:scale-105 transition duration-700 ${config.code === 'perezoso_cafe' ? 'w-[32rem]' : 'w-64'}`}
                         />
                     ) : (
                         isCustomer ? <User size={100} className="mx-auto" /> : <Store size={100} className="mx-auto" />
@@ -202,7 +202,7 @@ function AuthContent() {
                                 <img
                                     src={config.assets.logo}
                                     alt={config.name}
-                                    className="w-32 drop-shadow-lg"
+                                    className={`drop-shadow-lg ${config.code === 'perezoso_cafe' ? 'w-64' : 'w-32'}`}
                                 />
                             ) : null}
                         </div>
