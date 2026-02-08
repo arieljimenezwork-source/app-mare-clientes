@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { Share, PlusSquare } from 'lucide-react';
+import { useClientConfig } from '@/context/ClientConfigContext';
 
 export default function IOSInstallPrompt() {
+    const config = useClientConfig();
     const [isIOS, setIsIOS] = useState(false);
     const [isStandalone, setIsStandalone] = useState(false);
     const [showPrompt, setShowPrompt] = useState(false);
@@ -34,7 +36,7 @@ export default function IOSInstallPrompt() {
                 <div className="flex justify-between items-start">
                     <div>
                         <h3 className="font-bold text-black">Instalar App</h3>
-                        <p className="text-xs text-gray-500">Agrega Mare Cafe a tu inicio para una mejor experiencia.</p>
+                        <p className="text-xs text-gray-500">Agrega <strong>{config.name}</strong> a tu inicio para una mejor experiencia.</p>
                     </div>
                     <button onClick={() => setShowPrompt(false)} className="text-gray-400 hover:text-gray-600">✕</button>
                 </div>
