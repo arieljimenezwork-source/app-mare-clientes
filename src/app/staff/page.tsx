@@ -116,74 +116,79 @@ export default function StaffDashboard() {
     const handleScan = async (scannedData: string) => {
         if (!config) return;
 
-        // TRY TO PARSE JSON (PROMO QR)
+        let targetUserId = scannedData;
+        let isJson = false;
+        let parsedData: any = {};
+
+        // 1. TRY TO PARSE JSON
         try {
             if (scannedData.startsWith('{')) {
-                const data = JSON.parse(scannedData);
-                if (data.type === 'promo') {
-                    // --- PROMO REDEMPTION FLOW ---
-                    const { campaignId, user } = data;
+                parsedData = JSON.parse(scannedData);
+                isJson = true;
 
-                    // 1. Verify Campaign Status
-                    const { data: campaign, error } = await supabase.from('campaigns').select('status, title').eq('id', campaignId).single();
-
-                    if (error || !campaign) {
-                        alert('❌ Error: Campaña no encontrada o inválida.');
-                        setShowScanner(false);
-                        return;
-                    }
-
-                    if (campaign.status !== 'active') {
-                        alert(`❌ PROMOCIÓN VENCIDA O INACTIVA\n\nCampaña: ${campaign.title}\nEstado: ${campaign.status}`);
-                        setShowScanner(false);
-                        return;
-                    }
-
-                    // 2. Validate User (Optional: check if already redeemed?)
-                    // For now, simpler flow: "Valid"
-                    const confirmRedeem = confirm(`✅ PROMOCIÓN VÁLIDA\n\nCampaña: ${campaign.title}\nUsuario: ${user}\n\n¿Registrar canje?`);
-
-                    if (confirmRedeem) {
-                        // Log usage
-                        await supabase.from('transaction_logs').insert({
-                            user_id: user, // Note: user here is email, but we might need UUID. Profiles lookup needed?
-                            // For simplicity, let's log description. 'user_id' in DB is uuid. 
-                            // If we don't have UUID content in QR, we need to fetch it or store email in metadata?
-                            // Ideally QR should contain user UUID.
-                            // Let's assume user email is okay for description but we need UUID for foreign key if enforces.
-                            // Wait, previous code used scannedData as user_id directly. This means user QR is UUID.
-                            // Our new QR has { user: email }. 
-                            // We need to fetch UUID from email.
-                            type: 'promo_redeem',
-                            description: `Canje Promoción: ${campaign.title}`
-                        });
-
-                        // We need the UUID to log correctly if we enforce FK. 
-                        // Let's fetch it quickly. 
-                        const { data: profile } = await supabase.from('profiles').select('id').eq('email', user).single();
-                        if (profile) {
-                            await supabase.from('transaction_logs').insert({
-                                user_id: profile.id,
-                                type: 'promo_redeem',
-                                description: `Canje Promoción: ${campaign.title}`
-                            });
-                        }
-
-                        alert('✅ Canje registrado exitosamente.');
-                        setScanCount(prev => prev + 1);
-                    }
-                    setShowScanner(false);
-                    return;
+                // Extract UID if available (This fixes the "invalid input syntax for type uuid" error)
+                if (parsedData.uid) {
+                    targetUserId = parsedData.uid;
                 }
             }
         } catch (e) {
-            // Not JSON, continue to normal flow
+            // Not JSON, treat as raw UUID string
+        }
+
+        // 2. PROMO FLOW
+        if (isJson && parsedData.type === 'promo') {
+            // --- PROMO REDEMPTION FLOW ---
+            const { campaignId, user } = parsedData;
+
+            // 1. Verify Campaign Status
+            const { data: campaign, error } = await supabase.from('campaigns').select('status, title').eq('id', campaignId).single();
+
+            if (error || !campaign) {
+                alert('❌ Error: Campaña no encontrada o inválida.');
+                setShowScanner(false);
+                return;
+            }
+
+            if (campaign.status !== 'active') {
+                alert(`❌ PROMOCIÓN VENCIDA O INACTIVA\n\nCampaña: ${campaign.title}\nEstado: ${campaign.status}`);
+                setShowScanner(false);
+                return;
+            }
+
+            // 2. Validate User
+            const confirmRedeem = confirm(`✅ PROMOCIÓN VÁLIDA\n\nCampaña: ${campaign.title}\nUsuario: ${user}\n\n¿Registrar canje?`);
+
+            if (confirmRedeem) {
+                // Log usage
+                // Try to find UUID from email if user is email
+                let logUserId = user;
+                // Simple regex to check if user is UUID or Email
+                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user);
+
+                if (!isUuid) {
+                    const { data: profile } = await supabase.from('profiles').select('id').eq('email', user).single();
+                    if (profile) logUserId = profile.id;
+                    // If not found, we might fail FK or insert with email if allowed? Assuming UUID required.
+                }
+
+                await supabase.from('transaction_logs').insert({
+                    user_id: logUserId,
+                    type: 'promo_redeem',
+                    description: `Canje Promoción: ${campaign.title}`
+                });
+
+                alert('✅ Canje registrado exitosamente.');
+                setScanCount(prev => prev + 1);
+            }
+            setShowScanner(false);
+            return;
         }
 
         // --- NORMAL USER FLOW (STAMP) ---
+        // Use targetUserId which is now the clean UUID
 
         // 1. Check current stamps first
-        const { data: stampData } = await supabase.from('stamps').select('count').eq('user_id', scannedData).single();
+        const { data: stampData } = await supabase.from('stamps').select('count').eq('user_id', targetUserId).single();
         const currentStamps = stampData?.count || 0;
 
         // 2. REWARD LOGIC: Dynamic from config
@@ -196,7 +201,7 @@ export default function StaffDashboard() {
                 const { data: verification } = await supabase.rpc('verify_shop_pin', { input_pin: pin, shop_code: config.code });
 
                 if (verification?.valid && verification?.role === 'admin') {
-                    const result = await handleRedemption(scannedData);
+                    const result = await handleRedemption(targetUserId);
                     if (result.success) {
                         alert('✅ ' + result.message);
                         setScanCount(prev => prev + 1); // Count as activity
@@ -212,7 +217,6 @@ export default function StaffDashboard() {
                 }
             }
             // If they chose NO, we proceed to try adding a stamp (normal flow)? 
-            // Or maybe just cancel? Let's ask.
             const addStampInstead = confirm('¿Desea sumar un punto normal en su lugar?');
             if (!addStampInstead) {
                 setShowScanner(false);
@@ -221,7 +225,7 @@ export default function StaffDashboard() {
         }
 
         // 3. Normal ADD STAMP Logic (Existing)
-        const result = await handleScanOperation(scannedData, false);
+        const result = await handleScanOperation(targetUserId, false);
 
         if (result.success) {
             alert('¡Sello agregado correctamente!');
@@ -232,7 +236,7 @@ export default function StaffDashboard() {
             const { data: verification } = await supabase.rpc('verify_shop_pin', { input_pin: pin, shop_code: config.code });
 
             if (verification?.valid && verification?.role === 'admin') {
-                const overrideResult = await handleScanOperation(scannedData, true);
+                const overrideResult = await handleScanOperation(targetUserId, true);
                 if (overrideResult.success) {
                     alert('✅ Excepción Autorizada. Sello agregado.');
                     setScanCount(prev => prev + 1);
