@@ -138,8 +138,10 @@ function AuthContent() {
                     if (profileError) console.error("Profile creation warning:", profileError);
                 }
 
-                alert('Registro exitoso. ¡Por favor inicia sesión!');
-                setIsLogin(true); // Switch to login views
+                alert('Registro exitoso. ¡Bienvenido!');
+                if (finalRole === 'customer') router.push('/client');
+                else if (finalRole === 'admin') router.push('/admin');
+                else router.push('/staff');
             }
         } catch (err: any) {
             setError(err.message || 'Ocurrió un error desconocido');

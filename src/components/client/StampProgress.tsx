@@ -1,43 +1,73 @@
-import { ClientConfig } from '@/config/types';
-import { Coffee } from 'lucide-react';
+'use client';
+
+import { ClientConfig } from "@/config/types";
+import { Check, Gift } from "lucide-react";
 
 interface StampProgressProps {
+    currentStamps: number;
     config: ClientConfig;
-    stamps: number;
+    onStampClick?: (index: number) => void; // Optional for simulation
 }
 
-export default function StampProgress({ config, stamps }: StampProgressProps) {
-    const percentage = Math.min((stamps / config.rules.stampsPerReward) * 100, 100);
+export default function StampProgress({ currentStamps, config, onStampClick }: StampProgressProps) {
+    const total = config.rules.stampsPerReward || 10;
+    const pct = Math.min((currentStamps / total) * 100, 100);
 
     return (
-        <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100">
-            <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-full bg-orange-100 text-orange-600 shadow-sm">
-                        <Coffee size={28} />
-                    </div>
-                    <div>
-                        <div className="flex items-baseline gap-1">
-                            <p className="font-bold text-3xl">{stamps}</p>
-                            <p className="text-sm font-medium text-gray-400">/ {config.rules.stampsPerReward}</p>
-                        </div>
-                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Sellos acumulados</p>
-                    </div>
+        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-5">
+                <div>
+                    <h3 className="font-bold text-gray-900 text-sm">Tu Tarjeta</h3>
+                    <p className="text-gray-400 text-xs mt-0.5 font-medium">
+                        {currentStamps >= total ? "¡Premio disponible!" : `${total - currentStamps} más para tu premio`}
+                    </p>
+                </div>
+                <div className="flex items-baseline gap-0.5">
+                    <span className="text-3xl font-black text-gray-900 tracking-tight">{currentStamps}</span>
+                    <span className="text-sm text-gray-300 font-bold">/{total}</span>
                 </div>
             </div>
 
-            <div className="w-full bg-gray-100 rounded-full h-2.5">
-                <div
-                    className="bg-orange-500 h-2.5 rounded-full transition-all duration-1000"
-                    style={{ width: `${percentage}%` }}
-                ></div>
+            <div className="grid grid-cols-5 gap-3 mb-6">
+                {Array.from({ length: total }).map((_, i) => {
+                    const filled = i < currentStamps;
+                    const next = i === currentStamps;
+                    const isReward = i === total - 1;
+
+                    return (
+                        <div
+                            key={i}
+                            onClick={() => onStampClick?.(i + 1)}
+                            className={`
+                aspect-square rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300 relative
+                ${filled ? "text-white scale-100 shadow-md transform" : next ? "border-2 border-dashed bg-gray-50 scale-105" : "bg-gray-50 text-gray-300"}
+              `}
+                            style={{
+                                backgroundColor: filled ? config.theme.accentColor : undefined,
+                                borderColor: next ? config.theme.accentColor : undefined,
+                                color: next ? config.theme.accentColor : undefined,
+                                cursor: onStampClick ? 'pointer' : 'default'
+                            }}
+                        >
+                            {filled ? (
+                                <Check size={14} strokeWidth={4} />
+                            ) : isReward ? (
+                                <Gift size={16} />
+                            ) : (
+                                i + 1
+                            )}
+                        </div>
+                    );
+                })}
             </div>
 
-            <p className="text-xs text-center mt-2 text-gray-400">
-                {stamps >= config.rules.stampsPerReward
-                    ? '¡Tienes una bebida gratis disponible!'
-                    : `Faltan ${config.rules.stampsPerReward - stamps} sellos para tu premio.`}
-            </p>
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div
+                    className="h-full rounded-full transition-all duration-700 ease-out"
+                    style={{ width: `${pct}%`, backgroundColor: config.theme.accentColor }}
+                />
+            </div>
         </div>
     );
 }

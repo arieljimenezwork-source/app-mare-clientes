@@ -1,130 +1,125 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useClientConfig } from '@/context/ClientConfigContext';
-import { ClientConfig } from '@/config/types';
-import PoweredBy from '@/components/PoweredBy';
-import { Coffee, Crown, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import NewsFeed from '@/components/client/NewsFeed';
+import { useClientConfig } from '@/context/ClientConfigContext';
+import { Coffee, Crown } from 'lucide-react';
 
-// New Components
+// Coffeinopia Components
 import ClientHeader from '@/components/client/ClientHeader';
-import WelcomeHero from '@/components/client/WelcomeHero';
+import PromoBanner from '@/components/client/PromoBanner';
 import StampProgress from '@/components/client/StampProgress';
-import RewardsCard from '@/components/client/RewardsCard';
-import MenuButton from '@/components/client/MenuButton';
-import QRFloatingButton from '@/components/client/QRFloatingButton';
-import QRModal from '@/components/client/QRModal';
-import AboutUs from '@/components/client/AboutUs';
+import NewsFeed from '@/components/client/NewsFeed';
+import BottomNav from '@/components/client/BottomNav';
+import QRSheet from '@/components/client/QRSheet';
+import PoweredBy from '@/components/PoweredBy';
 
 export default function ClientDashboard() {
-  const router = useRouter();
   const config = useClientConfig();
-  const [stamps, setStamps] = useState<number>(0);
-  const [level, setLevel] = useState<number>(1);
-  const [userName, setUserName] = useState<string>('');
+  const [stamps, setStamps] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [userUUID, setUserUUID] = useState<string | null>(null);
-
-  // UI States
-  const [showQRModal, setShowQRModal] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [userUUID, setUserUUID] = useState('');
+  const [userLevel, setUserLevel] = useState(1);
+  const [showQRSheet, setShowQRSheet] = useState(false);
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
   const [favDrink, setFavDrink] = useState('');
 
-  // Polling Ref
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    const init = async () => {
-      // Config from Context
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.push('/auth/login?role=customer');
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/auth/login');
         return;
       }
 
-      // 1. Validate Client Isolation
-      const { data: profile } = await supabase.from('profiles').select('client_code').eq('id', user.id).single();
+      setUserUUID(session.user.id);
 
-      let isValidUser = true;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, client_code, first_name, level, preferences')
+        .eq('id', session.user.id)
+        .single();
 
-      if (config.code === 'perezoso_cafe') {
-        // Perezoso requires strict match
-        if (profile?.client_code !== 'perezoso_cafe') isValidUser = false;
-      } else if (config.code === 'mare_cafe') {
-        // Mare allows null (legacy) or match
-        if (profile?.client_code && profile.client_code !== 'mare_cafe') isValidUser = false;
-      } else {
-        // Default strict if code present
-        if (profile?.client_code && profile.client_code !== config.code) isValidUser = false;
-      }
-
-      if (!isValidUser) {
-        await supabase.auth.signOut();
-        alert(`Tu cuenta no pertenece a ${config.name}.`);
-        router.push('/');
+      if (profile?.role !== 'customer') {
+        router.push('/unauthorized');
         return;
       }
 
-      setUserUUID(user.id);
-      await fetchData(user.id);
-      setLoading(false);
-    };
+      if (config.code && profile.client_code !== config.code) {
+        console.warn(`User client (${profile.client_code}) does not match app client (${config.code})`);
+      }
 
-    init();
+      setUserName(profile?.first_name || 'Cliente');
+      setUserLevel(profile?.level || 1);
+      if (profile?.preferences?.favorite_drink) {
+        setFavDrink(profile.preferences.favorite_drink);
+      }
 
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    };
-  }, [router, config]);
+      fetchStamps(session.user.id);
 
-  // Polling Logic: Watch for Redemption or Stamps update when QR is open
-  useEffect(() => {
-    if (showQRModal) {
-      pollingRef.current = setInterval(async () => {
-        if (userUUID) {
-          const { data } = await supabase.from('stamps').select('count').eq('user_id', userUUID).single();
-          if (data) {
-            // Check if stamps dropped (redemption)
-            if (stamps >= 7 && data.count < 7) {
-              // Assuming 7 is the threshold, but should use config.rules.stampsPerReward ideally. 
-              // However config might be null here if not careful, but useEffect dep array handles updates? 
-              // Let's use current stamps state vs new data.
-              // Actually, improved logic:
-              setShowQRModal(false);
-              setShowLevelUpModal(true);
-            }
-
-            // Always update stamps to show real-time progress if they just got a stamp
-            if (data.count !== stamps) {
-              setStamps(data.count);
-            }
+      const channel = supabase
+        .channel('stamps_subscription')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'stamps',
+            filter: `user_id=eq.${session.user.id}`,
+          },
+          () => {
+            fetchStamps(session.user.id);
           }
-        }
-      }, 3000); // Check every 3s
-    } else {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    }
+        )
+        .subscribe();
 
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
+      return () => {
+        supabase.removeChannel(channel);
+      };
     };
-  }, [showQRModal, userUUID, stamps]); // Added stamps to dependency
 
-  const fetchData = async (uuid: string) => {
-    // 1. Stamps
-    const { data: stampData } = await supabase.from('stamps').select('count').eq('user_id', uuid).single();
-    if (stampData) setStamps(stampData.count);
+    checkSession();
+  }, [router, config.code]);
 
-    // 2. Profile (Level + Name)
-    const { data: profileData } = await supabase.from('profiles').select('level, preferences, first_name').eq('id', uuid).single();
-    if (profileData) {
-      setLevel(profileData.level || 1);
-      if (profileData.first_name) setUserName(profileData.first_name);
+  const fetchStamps = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('stamps')
+        .select('count')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching stamps:', error);
+        return;
+      }
+
+      if (data) {
+        if (stamps >= (config.rules.stampsPerReward || 10) && data.count < (config.rules.stampsPerReward || 10)) {
+          setShowQRSheet(false);
+          setShowLevelUpModal(true);
+        }
+        setStamps(data.count);
+      } else {
+        const { error: insertError } = await supabase
+          .from('stamps')
+          .insert([{ user_id: userId, count: 0, client_code: config.code }]);
+
+        if (!insertError) setStamps(0);
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleTabChange = (tab: string) => {
+    if (tab === 'menu') router.push('/client/menu');
   };
 
   const handleSavePreferences = async () => {
@@ -138,117 +133,94 @@ export default function ClientDashboard() {
     alert('¡Gracias! Guardamos tu preferencia.');
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: config.theme.primaryColor }}></div>
+      </div>
+    );
+  }
 
-  if (loading) return <div className="flex h-screen items-center justify-center">Cargando...</div>;
-
-  const isRewardReady = stamps >= config.rules.stampsPerReward;
+  const isRewardAvailable = stamps >= (config.rules.stampsPerReward || 10);
 
   return (
-    <main
-      className="min-h-screen flex flex-col font-sans transition-colors duration-500"
-      style={{
-        backgroundColor: config.theme.secondaryColor,
-        color: config.theme.primaryColor,
-      }}
-    >
-      <ClientHeader
+    <div className="min-h-screen bg-[#FAFAFA] pb-[100px] relative overflow-hidden" style={{ fontFamily: config.theme.fontFamily }}>
+
+      <ClientHeader config={config} userName={userName} level={userLevel} />
+
+      <main className="pt-28 px-5 flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-700">
+
+        <PromoBanner config={config} />
+
+        <StampProgress
+          currentStamps={stamps}
+          config={config}
+          onStampClick={(i) => {
+            if (process.env.NODE_ENV === 'development') {
+              console.log("Dev simulation: setting stamps to", i);
+            }
+          }}
+        />
+
+        {config.features.showNewsFeed && (
+          <NewsFeed config={config} />
+        )}
+
+        <div className="mt-4 opacity-50">
+          <PoweredBy />
+        </div>
+
+      </main>
+
+      <BottomNav
         config={config}
-        level={level}
-        onLogout={handleLogout}
-        showGoldQR={showQRModal && isRewardReady} // Pass this to style header if needed, though header might not need to change color anymore?
-      // Actually, the new design keeps the header simple. Let's see ClientHeader props.
-      // It accepts showGoldQR. If true, it turns black/gold.
+        onQRClick={() => setShowQRSheet(true)}
+        onTabChange={handleTabChange}
       />
 
-      <div className="flex-1 max-w-md md:max-w-xl lg:max-w-2xl mx-auto w-full p-4 md:p-6 pt-56 md:pt-60 flex flex-col gap-6 md:gap-8 pb-24">
-
-        {/* Hero Section */}
-        <WelcomeHero
-          config={config}
-          userName={userName}
-          showGoldQR={false} // Always false in main view now
-        />
-
-        {/* Progress Section */}
-        <StampProgress config={config} stamps={stamps} />
-
-        {/* Reward CTA */}
-        <RewardsCard
-          config={config}
-          isRewardReady={isRewardReady}
-          onOpenQR={() => setShowQRModal(true)}
-        />
-
-        {/* Menu CTA */}
-        <MenuButton config={config} />
-
-        {/* News Feed */}
-        {config.features.showNewsFeed && <NewsFeed />}
-
-        {/* About Us */}
-        <AboutUs config={config} />
-
-      </div>
-
-      {/* Floating Action Button */}
-      <QRFloatingButton
-        onClick={() => setShowQRModal(true)}
-        primaryColor={config.theme.primaryColor}
-      />
-
-      {/* QR Modal (Bottom Sheet) */}
-      <QRModal
-        isOpen={showQRModal}
-        onClose={() => setShowQRModal(false)}
+      <QRSheet
+        isOpen={showQRSheet}
+        onClose={() => setShowQRSheet(false)}
+        config={config}
         userUUID={userUUID}
-        isRewardReady={isRewardReady}
-        config={config}
+        isReward={isRewardAvailable}
       />
 
-      {/* Level Up / Reward Claimed Modal */}
       {showLevelUpModal && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center space-y-6">
-            <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
-              <Crown size={40} className="text-amber-500" />
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl relative overflow-hidden">
+            <div className="absolute inset-0 bg-yellow-50 opacity-50"></div>
+            <div className="relative z-10 w-full">
+              <div className="text-6xl mb-4 animate-bounce">🎉</div>
+              <h2 className="text-2xl font-black text-gray-900 mb-2">¡Canje Exitoso!</h2>
+              <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 mt-4">
+                <Crown size={40} className="text-amber-500" />
+              </div>
+              <p className="text-gray-500 mb-6">Has disfrutado tu premio. ¡Sigue acumulando para el próximo!</p>
 
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800">¡Nivel {level} Desbloqueado! 🚀</h2>
-              <p className="text-gray-500 mt-2">Se nota que te gusta lo que hacemos. Gracias por elegirnos.</p>
-            </div>
+              <div className="bg-white/80 p-4 rounded-xl text-left border border-gray-200 mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <Coffee size={16} /> ¿Cuál es tu bebida favorita?
+                </label>
+                <input
+                  type="text"
+                  value={favDrink}
+                  onChange={(e) => setFavDrink(e.target.value)}
+                  placeholder="Ej. Latte Vainilla"
+                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 px-3 py-2 text-gray-900 border"
+                />
+              </div>
 
-            <div className="bg-gray-50 p-4 rounded-xl text-left border border-gray-200">
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Coffee size={16} /> ¿Cuál es tu bebida favorita?
-              </label>
-              <input
-                type="text"
-                value={favDrink}
-                onChange={(e) => setFavDrink(e.target.value)}
-                placeholder="Ej. Latte Vainilla"
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 px-3 py-2 text-gray-900 border"
-              />
+              <button
+                onClick={handleSavePreferences}
+                className="w-full bg-gray-900 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:scale-105 transition-transform"
+              >
+                ¡Genial!
+              </button>
             </div>
-
-            <button
-              onClick={handleSavePreferences}
-              className="w-full py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors"
-            >
-              Guardar y Continuar
-            </button>
           </div>
         </div>
       )}
-
-      <div className="pb-6">
-        <PoweredBy />
-      </div>
-
-    </main>
+    </div>
   );
 }

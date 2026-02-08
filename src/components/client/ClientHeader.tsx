@@ -1,47 +1,64 @@
-import { ClientConfig } from '@/config/types';
-import { Crown, LogOut } from 'lucide-react';
+'use client';
+
+import Image from "next/image";
+import { Bell } from "lucide-react";
+import { ClientConfig } from "@/config/types";
 
 interface ClientHeaderProps {
     config: ClientConfig;
-    level: number;
-    onLogout: () => void;
-    showGoldQR: boolean;
+    userName?: string;
+    level?: number;
 }
 
-export default function ClientHeader({ config, level, onLogout, showGoldQR }: ClientHeaderProps) {
-    return (
-        <header className={`p-4 shadow-sm fixed w-full top-0 z-20 transition-colors ${showGoldQR ? 'bg-black text-amber-400' : 'bg-white'}`}>
-            <div className="max-w-md mx-auto relative flex items-center justify-center h-48">
+export default function ClientHeader({ config, userName = "Cliente", level = 1 }: ClientHeaderProps) {
+    const hasLogo = config.assets?.logo;
+    const logoIsProtagonist = config.code === 'perezoso_cafe';
 
-                {/* Centered Logo */}
-                <div className="flex flex-col items-center">
-                    {config.assets?.logo ? (
-                        <img
-                            src={config.assets.logo}
-                            alt={config.name}
-                            className="h-44 w-auto object-contain"
-                        />
-                    ) : (
-                        <h1 className="text-xl font-bold">{config.name}</h1>
-                    )}
+    return (
+        <header className="fixed w-full top-0 z-20 transition-all duration-300">
+            <div
+                className="px-5 pt-12 pb-4 flex items-center justify-between shadow-sm"
+                style={{ backgroundColor: config.theme.primaryColor }}
+            >
+                <div className="flex items-center gap-4">
+                    {/* Logo como protagonista (especialmente para Perezoso) */}
+                    <div className={`flex-shrink-0 flex items-center justify-center overflow-hidden rounded-xl ${logoIsProtagonist ? 'h-20 w-20 bg-white/5' : 'h-10 w-10 bg-white/10'} backdrop-blur-sm`}>
+                        {hasLogo ? (
+                            <Image
+                                src={config.assets!.logo}
+                                alt={config.name}
+                                width={logoIsProtagonist ? 80 : 40}
+                                height={logoIsProtagonist ? 80 : 40}
+                                className="object-contain"
+                            />
+                        ) : (
+                            <span className="text-xl">{config.code === 'perezoso_cafe' ? '🦥' : '☕'}</span>
+                        )}
+                    </div>
+                    <div>
+                        {!logoIsProtagonist && (
+                            <p className="text-white font-bold text-base leading-tight tracking-wide">
+                                {config.name}
+                            </p>
+                        )}
+                        <p className={`text-white font-bold mt-0.5 ${logoIsProtagonist ? 'text-2xl' : 'text-base'}`}>
+                            Hola, {userName}
+                        </p>
+                    </div>
                 </div>
 
-                {/* Absolute Level Badge (Right of Logo) */}
-                {level > 1 && (
-                    <div className="absolute right-12 top-1/2 -translate-y-1/2">
-                        <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1 shadow-sm border border-amber-200">
-                            <Crown size={10} /> Lv {level}
+                <div className="flex items-center gap-2">
+                    {level > 1 && (
+                        <span className="bg-amber-400/20 text-amber-300 text-[10px] px-2.5 py-1 rounded-full font-bold border border-amber-400/30 backdrop-blur-sm">
+                            ★ Lv {level}
                         </span>
-                    </div>
-                )}
-
-                {/* Logout Button (Top Right) */}
-                <button
-                    onClick={onLogout}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-red-500 transition"
-                >
-                    <LogOut size={20} />
-                </button>
+                    )}
+                    <button className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white/80 hover:bg-white/20 transition-colors backdrop-blur-sm relative">
+                        <Bell size={18} />
+                        {/* Notification Dot */}
+                        <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-[#2E2333]"></span>
+                    </button>
+                </div>
             </div>
         </header>
     );

@@ -10,9 +10,9 @@ declare
   current_stamps int;
   stamps_needed int;
   caller_role text;
-  user_shop_id uuid;
+  user_client_code text;
   shop_config jsonb;
-  default_stamps int := 10; -- Default fallback if config sucks
+  default_stamps int := 7; -- Default fallback
   new_level int;
 begin
   -- Check permissions (Staff/Admin only)
@@ -21,14 +21,12 @@ begin
     return jsonb_build_object('success', false, 'message', 'Unauthorized');
   end if;
 
-  -- Get User's Shop via Profile
-  select shop_id into user_shop_id from profiles where id = target_user_id;
+  -- Get User's Shop via Profile client_code
+  select client_code into user_client_code from profiles where id = target_user_id;
   
-  -- Get Shop Config
-  if user_shop_id is not null then
-      select config into shop_config from shops where id = user_shop_id;
-      -- Try to read rules.stampsPerReward from jsonb
-      -- Note: JSONB extraction depends on structure: {"rules": {"stampsPerReward": 10}}
+  -- Get Shop Config using code column
+  if user_client_code is not null then
+      select config into shop_config from shops where code = user_client_code;
       stamps_needed := (shop_config->'rules'->>'stampsPerReward')::int;
   end if;
 

@@ -26,7 +26,7 @@ begin
     select admin_pin_hash, staff_pin_hash 
     into stored_admin_hash, stored_staff_hash
     from shops 
-    where config->>'code' = shop_code;
+    where code = shop_code;
 
     if not found then
         return jsonb_build_object('valid', false, 'message', 'Shop not found');

@@ -715,13 +715,6 @@ export default function AdminDashboard() {
                                 <div className="bg-white p-6 rounded-3xl shadow-md border border-slate-100">
                                     <h3 className="text-lg font-bold text-slate-800 mb-6 border-b pb-2">Credenciales</h3>
                                     <div className="space-y-4">
-                                        <div>
-                                            <label className="text-sm font-semibold text-slate-600">PIN Maestro (Admin)</label>
-                                            <div className="flex gap-2">
-                                                <input type="password" value="MARE-ADMIN-2024" disabled className="w-full mt-1 p-2 bg-slate-50 text-slate-500 rounded-lg border border-slate-200" />
-                                            </div>
-                                            <p className="text-xs text-orange-500 mt-1">Este PIN permite crear nuevos administradores.</p>
-                                        </div>
                                         <button className="w-full py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition">
                                             Actualizar Credenciales
                                         </button>

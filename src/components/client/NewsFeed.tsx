@@ -1,78 +1,62 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Bell, Calendar, Star } from 'lucide-react';
+import { ClientConfig } from "@/config/types";
+import { ArrowRight } from "lucide-react";
 
-interface NewsItem {
-    id: string;
-    title: string;
-    content: string;
-    image_url?: string;
-    category?: string;
-    created_at: string;
-    active: boolean;
+interface NewsFeedProps {
+    config: ClientConfig;
 }
 
-export default function NewsFeed() {
-    const [news, setNews] = useState<NewsItem[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchNews = async () => {
-            // In a real implementation this table 'news_feed' would exist
-            const { data } = await supabase
-                .from('news_feed')
-                .select('*')
-                .eq('active', true)
-                .order('created_at', { ascending: false });
-
-            if (data) setNews(data);
-            setLoading(false);
-        };
-        fetchNews();
-    }, []);
-
-    if (loading) return <div className="p-4 text-center opacity-50 text-sm">Cargando novedades...</div>;
+export default function NewsFeed({ config }: NewsFeedProps) {
+    // TODO: Fetch from DB later. Using mock data for now as per plan.
+    const items = [
+        { id: "1", emoji: "☕", cat: "Novedad", title: "Cold Brew de Temporada", desc: "Infusión en frío con notas tropicales" },
+        { id: "2", emoji: "🎨", cat: "Evento", title: "Taller de Latte Art", desc: "Aprende arte en tu taza este sábado" },
+        { id: "3", emoji: "🌱", cat: "Eco", title: "Descuento Eco-Friendly", desc: "15% OFF con tu vaso reutilizable" },
+        { id: "4", emoji: "🧁", cat: "Nuevo", title: "Pastelería Artesanal", desc: "Nuevos croissants de masa madre" },
+    ];
 
     return (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
-            <div className="flex items-center gap-2 px-2">
-                <Bell size={16} className="text-amber-600" />
-                <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wide">Novedades y Eventos</h3>
+        <div className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+                <h3 className="font-bold text-gray-900 text-sm">Novedades</h3>
+                <button
+                    className="text-xs font-semibold flex items-center gap-1 transition-colors hover:opacity-80"
+                    style={{ color: config.theme.accentColor }}
+                >
+                    Ver Todo <ArrowRight size={12} />
+                </button>
             </div>
 
-            {news.length === 0 ? (
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center">
-                    <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <Star size={24} className="text-amber-500" />
-                    </div>
-                    <p className="text-gray-500 text-sm">¡Pronto tendremos novedades para ti!</p>
-                    <p className="text-gray-400 text-xs mt-1">Promociones, eventos y más.</p>
-                </div>
-            ) : (
-                <div className="flex flex-col gap-4">
-                    {news.map((item) => (
-                        <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 min-h-[100px]">
-                            {item.image_url && (
-                                <div className="w-24 h-24 shrink-0 rounded-xl bg-gray-100 overflow-hidden">
-                                    <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
-                                </div>
-                            )}
-                            <div className="flex-1 flex flex-col justify-center">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                                        {item.category || 'Novedad'}
-                                    </span>
-                                    <span className="text-[10px] text-gray-400">{new Date(item.created_at).toLocaleDateString()}</span>
-                                </div>
-                                <h4 className="font-bold text-gray-900 leading-tight mb-1">{item.title}</h4>
-                                <p className="text-xs text-gray-500 line-clamp-2">{item.content}</p>
-                            </div>
+            <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 snap-x scrollbar-hide">
+                {items.map((item) => (
+                    <div
+                        key={item.id}
+                        className="min-w-[180px] snap-start bg-white rounded-[20px] overflow-hidden flex-shrink-0 border border-gray-100 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md"
+                    >
+                        <div
+                            className="h-28 flex items-center justify-center text-5xl"
+                            style={{ backgroundColor: `${config.theme.primaryColor}08` }}
+                        >
+                            {item.emoji}
                         </div>
-                    ))}
-                </div>
-            )}
+                        <div className="p-4">
+                            <span
+                                className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                style={{ backgroundColor: `${config.theme.accentColor}15`, color: config.theme.accentColor }}
+                            >
+                                {item.cat}
+                            </span>
+                            <h4 className="font-bold text-gray-900 text-xs mt-2 leading-tight">
+                                {item.title}
+                            </h4>
+                            <p className="text-gray-400 text-[10px] mt-1 leading-relaxed">
+                                {item.desc}
+                            </p>
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
