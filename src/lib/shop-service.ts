@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { ClientConfig } from '@/config/types';
+import { mareCafeConfig } from '@/config/clients/mare_cafe';
 
 // Default config values to fallback if DB fails or is empty, 
 // ensuring the app doesn't crash completely.
@@ -27,6 +28,11 @@ const DEFAULT_CONFIG: ClientConfig = {
 };
 
 export async function getShopConfig(code: string): Promise<ClientConfig | null> {
+    // Override: Use local config for mare_cafe to ensure latest features (like menu) are enabled
+    if (code === 'mare_cafe') {
+        return mareCafeConfig;
+    }
+
     try {
         const { data, error } = await supabase
             .from('shops')
