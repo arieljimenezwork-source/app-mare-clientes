@@ -289,8 +289,9 @@ export default function StaffDashboard() {
                         <p className="text-4xl font-bold mt-2">{scanCount}</p>
                     </div>
 
-                    <button onClick={() => setShowScanner(true)} className="group relative overflow-hidden bg-black text-white p-6 rounded-2xl shadow-lg flex items-center justify-between hover:shadow-xl transition-all" style={{ backgroundColor: config.theme.primaryColor }}>
-                        <div><h3 className="text-white/90 font-medium text-lg">Escanear Cliente</h3><p className="text-white/60 text-sm">Cámara o ingreso manual</p></div>
+
+                    <button onClick={() => setShowScanner(true)} className="group relative overflow-hidden bg-brand-primary text-white p-6 rounded-2xl shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
+                        <div><h3 className="text-white/90 font-medium text-lg font-brand">Escanear Cliente</h3><p className="text-white/60 text-sm font-brand">Cámara o ingreso manual</p></div>
                         <div className="bg-white/20 p-3 rounded-full group-hover:scale-110 transition-transform"><Scan size={32} /></div>
                     </button>
                 </section>

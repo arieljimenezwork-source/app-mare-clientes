@@ -10,6 +10,11 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Dynamic Branding */
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-secondary: var(--brand-secondary);
+  --font-brand: var(--font-brand);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -27,27 +32,136 @@ body {
 
 /* Coffeinopia design tokens & animations */
 @keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* Utilities */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
 .scrollbar-hide {
-  -ms-overflow-style: none; 
-  scrollbar-width: none; 
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .snap-x {
   scroll-snap-type: x mandatory;
 }
+
 .snap-start {
   scroll-snap-align: start;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   MARE CAFÉ — Scoped Design Tokens & Animations
+   Estas clases SOLO afectan al módulo Mare. No tocan Perezoso.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* --- Mare: Variables de diseño (scoped bajo .mare-theme) --- */
+.mare-theme {
+  --mare-primary: #1A3278;
+  --mare-primary-hover: #243D8A;
+  --mare-blue-soft: #4A6BB5;
+  --mare-surface: #F2EDE3;
+  --mare-canvas: #FAF8F4;
+  --mare-gold: #C8A96E;
+  --mare-gold-light: #E8D5A0;
+  --mare-ink: #2A2A2E;
+  --mare-stone: #8C8B88;
+  --mare-mist: #E5E1D9;
+  --mare-sage: #5B8C6A;
+  --mare-terracotta: #C0574A;
+
+  /* Gradientes */
+  --mare-gradient-ocean: linear-gradient(175deg, #1A3278 0%, #243D8A 45%, #2E4F9E 100%);
+  --mare-glass-cream: rgba(242, 237, 227, 0.72);
+  --mare-gradient-gold: linear-gradient(135deg, #C8A96E 0%, #E8D5A0 50%, #C8A96E 100%);
+}
+
+/* --- Mare: Animaciones --- */
+@keyframes mare-fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes mare-stampBounce {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+@keyframes mare-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes mare-slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes mare-wave1 {
+  0%, 100% { d: path('M0 12 Q6 6 12 12 Q18 18 24 12 Q30 6 36 12 Q42 18 48 12'); }
+  50% { d: path('M0 12 Q6 18 12 12 Q18 6 24 12 Q30 18 36 12 Q42 6 48 12'); }
+}
+
+@keyframes mare-wave2 {
+  0%, 100% { d: path('M0 14 Q6 8 12 14 Q18 20 24 14 Q30 8 36 14 Q42 20 48 14'); }
+  50% { d: path('M0 14 Q6 20 12 14 Q18 8 24 14 Q30 20 36 14 Q42 8 48 14'); }
+}
+
+@keyframes mare-pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200, 169, 110, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(200, 169, 110, 0); }
+}
+
+/* --- Mare: Utility classes (scoped) --- */
+.mare-theme .mare-fade-up {
+  animation: mare-fadeUp 0.3s ease-out both;
+}
+
+.mare-theme .mare-stamp-bounce {
+  animation: mare-stampBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.mare-theme .mare-shimmer {
+  background-size: 200% 100%;
+  animation: mare-shimmer 3s linear infinite;
+}
+
+.mare-theme .mare-slide-up {
+  animation: mare-slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.mare-theme .mare-pulse-gold {
+  animation: mare-pulse-gold 2s ease-in-out infinite;
+}
+
+/* --- Mare: Stagger children animation --- */
+.mare-theme .mare-stagger > * {
+  animation: mare-fadeUp 0.25s ease-out both;
+}
+.mare-theme .mare-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.mare-theme .mare-stagger > *:nth-child(2) { animation-delay: 50ms; }
+.mare-theme .mare-stagger > *:nth-child(3) { animation-delay: 100ms; }
+.mare-theme .mare-stagger > *:nth-child(4) { animation-delay: 150ms; }
+.mare-theme .mare-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.mare-theme .mare-stagger > *:nth-child(6) { animation-delay: 250ms; }
+.mare-theme .mare-stagger > *:nth-child(7) { animation-delay: 300ms; }

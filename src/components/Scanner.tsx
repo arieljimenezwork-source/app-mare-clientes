@@ -20,9 +20,9 @@ const Scanner: React.FC<ScannerProps> = ({ onScan, onClose }) => {
                     <X size={24} color="black" />
                 </button>
 
-                <div className="p-4 bg-gray-900 text-white text-center">
-                    <h2 className="text-lg font-bold">Escanear Código QR</h2>
-                    <p className="text-sm opacity-80">Apunta la cámara al QR del cliente</p>
+                <div className="p-4 bg-brand-primary text-white text-center">
+                    <h2 className="text-lg font-bold font-brand">Escanear Código QR</h2>
+                    <p className="text-sm opacity-80 font-brand">Apunta la cámara al QR del cliente</p>
                 </div>
 
                 <div className="w-full aspect-square bg-black relative">

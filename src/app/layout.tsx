@@ -18,12 +18,31 @@ const playfair = Playfair_Display({
   subsets: ["latin"],
 });
 
-import { Fredoka } from "next/font/google";
+import { Fredoka, DM_Serif_Display, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+});
+
+/* ─── Mare Café — Fuentes Premium ─── */
+const dmSerif = DM_Serif_Display({
+  variable: "--font-dm-serif",
+  subsets: ["latin"],
+  weight: ["400"],
+});
+
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains",
+  subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 import { getShopConfig } from "@/lib/shop-service";
@@ -70,7 +89,12 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${fredoka.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${fredoka.variable} ${dmSerif.variable} ${plusJakarta.variable} ${jetbrainsMono.variable} antialiased`}
+        style={{
+          '--brand-primary': config?.theme.primaryColor || '#000000',
+          '--brand-secondary': config?.theme.secondaryColor || '#ffffff',
+          '--font-brand': config?.theme.fontFamily || 'sans-serif',
+        } as React.CSSProperties}
       >
         {config ? (
           <ClientConfigProvider config={config}>
