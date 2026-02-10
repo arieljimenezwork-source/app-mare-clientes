@@ -5,27 +5,34 @@ import { X, Layout, Type, Image as ImageIcon, Send, Smartphone, Monitor, Palette
 
 interface EmailEditorProps {
     initialData: {
+        id?: string;
         title: string;
         content: string;
         imageUrl?: string;
         offer?: string;
+        primaryColor?: string;
+        buttonText?: string;
+        buttonUrl?: string;
     };
     onClose: () => void;
-    onSend: (data: { title: string; content: string; html: string; audience: string }) => Promise<void>;
+    onSave: (data: any) => Promise<void>;
+    onSend: (data: { id?: string; title: string; content: string; html: string; audience: string }) => Promise<void>;
     audience: string;
     isSending: boolean;
 }
 
-export default function EmailEditor({ initialData, onClose, onSend, audience, isSending }: EmailEditorProps) {
+export default function EmailEditor({ initialData, onClose, onSave, onSend, audience, isSending }: EmailEditorProps) {
     const [viewMode, setViewMode] = useState<'mobile' | 'desktop'>('mobile');
+    const [isSaving, setIsSaving] = useState(false);
+
     const [formData, setFormData] = useState({
         title: initialData.title || '¡Tenemos novedades!',
         content: initialData.content || 'Hola, tenemos algo especial para ti...',
         offer: initialData.offer || '',
         imageUrl: initialData.imageUrl || '',
-        primaryColor: '#1E3A8A',
-        buttonText: 'Canjear Ahora',
-        buttonUrl: '{{PROMO_LINK}}'
+        primaryColor: initialData.primaryColor || '#1E3A8A',
+        buttonText: initialData.buttonText || 'Canjear Ahora',
+        buttonUrl: initialData.buttonUrl || '{{PROMO_LINK}}'
     });
 
     const generateEmailHtml = (data: typeof formData) => {
@@ -81,10 +88,21 @@ export default function EmailEditor({ initialData, onClose, onSend, audience, is
 
     const htmlPreview = generateEmailHtml(formData);
 
+    const handleSave = async () => {
+        setIsSaving(true);
+        await onSave({
+            id: initialData.id,
+            ...formData,
+            html: htmlPreview,
+            audience
+        });
+        setIsSaving(false);
+    };
+
     const handleSubmit = async () => {
         await onSend({
-            title: formData.title,
-            content: formData.content,
+            id: initialData.id,
+            ...formData,
             html: htmlPreview,
             audience
         });
@@ -217,11 +235,18 @@ export default function EmailEditor({ initialData, onClose, onSend, audience, is
                         </div>
                     </div>
 
-                    <div className="p-6 border-t border-slate-200 bg-white">
+                    <div className="p-6 border-t border-slate-200 bg-white flex flex-col gap-3">
+                        <button
+                            onClick={handleSave}
+                            disabled={isSending || isSaving}
+                            className="w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition disabled:opacity-50"
+                        >
+                            {isSaving ? 'Guardando...' : 'Guardar Borrador'}
+                        </button>
                         <button
                             onClick={handleSubmit}
-                            disabled={isSending}
-                            className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                            disabled={isSending || isSaving}
+                            className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                             <Send size={20} />
                             {isSending ? 'Enviando...' : `Enviar a ${audience}`}

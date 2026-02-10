@@ -16,12 +16,15 @@ import { ClientConfig } from '@/config/types';
 import PoweredBy from '@/components/PoweredBy';
 import {
     Users, Scan, Gift, TrendingUp, LogOut, Mail, Settings, Bell,
-    Send, Clock, LayoutDashboard, Menu as MenuIcon, Plus, ChevronRight
+    Send, Clock, LayoutDashboard, Menu as MenuIcon, Plus, ChevronRight, Package, Award
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import EmailEditor from '@/components/admin/EmailEditor';
 import ClientsTab from '@/components/admin/ClientsTab';
+import ProductsTab from '@/components/admin/ProductsTab';
+import LoyaltyTab from '@/components/admin/LoyaltyTab';
+import CampaignsTab from '@/components/admin/CampaignsTab';
 
 /* ─── Mare Design Tokens ─── */
 const MARE = {
@@ -45,6 +48,21 @@ const FONTS = {
     mono: 'var(--font-jetbrains), monospace',
 } as const;
 
+/* ─── Helpers ─── */
+function getTimeAgo(dateStr: string): string {
+    const now = Date.now();
+    const then = new Date(dateStr).getTime();
+    const diffMs = now - then;
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'ahora';
+    if (mins < 60) return `hace ${mins} min`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `hace ${hrs}h`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `hace ${days}d`;
+    return new Date(dateStr).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+}
+
 /* ═══════════════════════════════════════════════════════════════
    COMPONENTE PRINCIPAL — MareDashboard
    ═══════════════════════════════════════════════════════════════ */
@@ -53,7 +71,7 @@ export default function MareDashboard() {
     const router = useRouter();
     const config = useClientConfig();
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'marketing' | 'settings' | 'activity'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'products' | 'marketing' | 'settings' | 'activity' | 'loyalty'>('overview');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     /* ─── Metrics State ─── */
@@ -74,6 +92,18 @@ export default function MareDashboard() {
         '/assets/mare/marketing/mesa-5.png',
         '/assets/mare/marketing/mesa-15.png',
     ]);
+
+    /* ─── Activity State ─── */
+    const [activityLogs, setActivityLogs] = useState<any[]>([]);
+    const [activityFilter, setActivityFilter] = useState<'all' | 'add_stamp' | 'redeem_reward'>('all');
+
+    /* ─── Settings State ─── */
+    const [stampsPerReward, setStampsPerReward] = useState(config.rules.stampsPerReward);
+    const [savingStamps, setSavingStamps] = useState(false);
+    const [showPinModal, setShowPinModal] = useState(false);
+    const [pinForm, setPinForm] = useState({ current: '', newPin: '', confirm: '' });
+    const [pinError, setPinError] = useState('');
+    const [savingPin, setSavingPin] = useState(false);
 
     /* ─── Init & Auth ─── */
     useEffect(() => {
@@ -98,9 +128,11 @@ export default function MareDashboard() {
                 return;
             }
 
-            await fetchMetrics(config);
-            await fetchCampaigns();
-            await fetchChartData(config);
+            await Promise.all([fetchMetrics(config), fetchCampaigns(), fetchChartData(config), fetchActivity(config)]);
+
+            // Load stampsPerReward from DB
+            const { data: shopData } = await supabase.from('shops').select('config').eq('code', 'mare_cafe').single();
+            if (shopData?.config?.rules?.stampsPerReward) setStampsPerReward(shopData.config.rules.stampsPerReward);
             setLoading(false);
 
             // Realtime
@@ -204,6 +236,29 @@ export default function MareDashboard() {
         if (data) setCampaigns(data);
     };
 
+    const fetchActivity = async (cfg: ClientConfig) => {
+        let query = supabase.from('transaction_logs')
+            .select(`
+                id, type, created_at, metadata,
+                staff:profiles!transaction_logs_staff_id_fkey(full_name, email),
+                customer:profiles!transaction_logs_user_id_fkey(full_name, email, client_code)
+            `)
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (cfg.code === 'mare_cafe') {
+            // We filter client-side for activity because the join makes it complex
+        }
+
+        const { data } = await query;
+        if (data) {
+            const filtered = cfg.code === 'mare_cafe'
+                ? data.filter((log: any) => !log.customer?.client_code || log.customer.client_code === 'mare_cafe')
+                : data.filter((log: any) => log.customer?.client_code === cfg.code);
+            setActivityLogs(filtered);
+        }
+    };
+
     /* ─── Marketing Handlers ─── */
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -233,6 +288,7 @@ export default function MareDashboard() {
             formData.append('title', data.title); formData.append('content', data.content);
             formData.append('html', data.html); formData.append('audience', data.audience);
             formData.append('campaignId', campaign.id);
+            formData.append('clientCode', 'mare_cafe');
 
             const { sendCampaign } = await import('@/app/actions/marketing');
             const result = await sendCampaign(formData);
@@ -266,6 +322,55 @@ export default function MareDashboard() {
 
     const handleLogout = async () => { await supabase.auth.signOut(); router.push('/'); };
 
+    /* ─── Settings Handlers ─── */
+    const handleSaveStamps = async () => {
+        setSavingStamps(true);
+        try {
+            const { data: shopData } = await supabase.from('shops').select('config').eq('code', 'mare_cafe').single();
+            const currentConfig = shopData?.config || {};
+            const updatedConfig = {
+                ...currentConfig,
+                rules: { ...currentConfig.rules, stampsPerReward }
+            };
+            const { error } = await supabase.from('shops').update({ config: updatedConfig }).eq('code', 'mare_cafe');
+            if (error) throw error;
+            alert('✅ Sellos para recompensa actualizados a ' + stampsPerReward);
+        } catch (e: any) {
+            alert('❌ Error: ' + e.message);
+        } finally {
+            setSavingStamps(false);
+        }
+    };
+
+    const handleChangePin = async () => {
+        setPinError('');
+        if (pinForm.newPin.length < 4) { setPinError('El PIN debe tener al menos 4 dígitos.'); return; }
+        if (pinForm.newPin !== pinForm.confirm) { setPinError('Los PINs nuevos no coinciden.'); return; }
+        setSavingPin(true);
+        try {
+            // Verify current PIN
+            const { data: verified, error: verifyError } = await supabase.rpc('verify_shop_pin', {
+                shop_code_input: 'mare_cafe',
+                pin_input: pinForm.current
+            });
+            if (verifyError || !verified) { setPinError('El PIN actual es incorrecto.'); setSavingPin(false); return; }
+
+            // Update PIN (hash it)
+            const { error } = await supabase.rpc('update_shop_pin', {
+                shop_code_input: 'mare_cafe',
+                new_pin: pinForm.newPin
+            });
+            if (error) throw error;
+            alert('✅ PIN actualizado correctamente.');
+            setShowPinModal(false);
+            setPinForm({ current: '', newPin: '', confirm: '' });
+        } catch (e: any) {
+            setPinError('Error: ' + e.message);
+        } finally {
+            setSavingPin(false);
+        }
+    };
+
     /* ─── Loading ─── */
     if (loading) {
         return (
@@ -282,7 +387,9 @@ export default function MareDashboard() {
     const tabs = [
         { id: 'overview', label: 'Resumen', icon: <LayoutDashboard size={20} />, enabled: true },
         { id: 'clients', label: 'Clientes', icon: <Users size={20} />, enabled: true },
+        { id: 'products', label: 'Productos', icon: <Package size={20} />, enabled: true },
         { id: 'marketing', label: 'Marketing', icon: <Mail size={20} />, enabled: config.features.marketingEnabled },
+        { id: 'loyalty', label: 'Lealtad', icon: <Award size={20} />, enabled: true },
         { id: 'activity', label: 'Actividad', icon: <Clock size={20} />, enabled: true },
         { id: 'settings', label: 'Ajustes', icon: <Settings size={20} />, enabled: config.features.adminSettingsEnabled },
     ].filter(t => t.enabled);
@@ -515,179 +622,241 @@ export default function MareDashboard() {
                         </div>
                     )}
 
+                    {/* PRODUCTS */}
+                    {activeTab === 'products' && (
+                        <div className="mare-fade-up">
+                            <ProductsTab shopCode={config.code} />
+                        </div>
+                    )}
+
+                    {/* LOYALTY */}
+                    {activeTab === 'loyalty' && (
+                        <div className="mare-fade-up">
+                            <LoyaltyTab />
+                        </div>
+                    )}
+
                     {/* MARKETING */}
                     {activeTab === 'marketing' && (
-                        <div className="mare-fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                            <div style={{ background: '#fff', borderRadius: 20, padding: 24, border: `1px solid ${MARE.mist}` }}>
-                                <h3 style={{ fontFamily: FONTS.serif, fontSize: 20, color: MARE.primary, marginBottom: 20, letterSpacing: '-0.02em' }}>
-                                    Nueva Campaña
-                                </h3>
-
-                                {/* Audience */}
-                                <div style={{ marginBottom: 24 }}>
-                                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: MARE.stone, letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 10 }}>
-                                        Audiencia
-                                    </label>
-                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                        {['Todos', 'Nivel 2+ (Frecuentes)', 'Nivel 3+ (VIP)'].map(label => (
-                                            <button key={label} onClick={() => setActiveAudience(label)} style={{
-                                                padding: '10px 18px', borderRadius: 12,
-                                                fontSize: 13, fontWeight: 600, fontFamily: FONTS.sans, cursor: 'pointer',
-                                                background: activeAudience === label ? MARE.primary : 'transparent',
-                                                color: activeAudience === label ? MARE.surface : MARE.stone,
-                                                border: activeAudience === label ? 'none' : `1.5px solid ${MARE.mist}`,
-                                                transition: 'all 200ms ease',
-                                            }}>{label}</button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Templates */}
-                                <div style={{ marginBottom: 24 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                        <label style={{ fontSize: 11, fontWeight: 600, color: MARE.stone, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>
-                                            Selecciona Diseño
-                                        </label>
-                                        <label style={{
-                                            display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer',
-                                            fontSize: 12, fontWeight: 600, color: MARE.primary,
-                                            padding: '6px 12px', borderRadius: 8, border: `1px solid ${MARE.mist}`,
-                                        }}>
-                                            <Plus size={14} /> Subir
-                                            <input type="file" className="hidden" style={{ display: 'none' }} accept="image/*" onChange={handleFileUpload} />
-                                        </label>
-                                    </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
-                                        {templates.map((src, idx) => (
-                                            <div key={idx} onClick={() => openEditor(src)} style={{
-                                                aspectRatio: '3/4', borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
-                                                border: `1px solid ${MARE.mist}`, transition: 'all 200ms ease', position: 'relative',
-                                            }}>
-                                                <img src={src} alt={`Template ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                <div style={{
-                                                    position: 'absolute', inset: 0, background: 'rgba(26,50,120,0.5)',
-                                                    opacity: 0, transition: 'opacity 200ms', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                }}
-                                                    onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                                                    onMouseLeave={e => (e.currentTarget.style.opacity = '0')}
-                                                >
-                                                    <span style={{
-                                                        background: '#fff', color: MARE.primary, padding: '8px 16px', borderRadius: 10,
-                                                        fontSize: 12, fontWeight: 600, fontFamily: FONTS.sans,
-                                                    }}>
-                                                        Usar Diseño
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <button onClick={handleTestEmail} style={{
-                                    width: '100%', padding: '14px 0', borderRadius: 12,
-                                    background: MARE.surface, color: MARE.primary, border: `1px solid ${MARE.mist}`,
-                                    fontFamily: FONTS.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                                }}>
-                                    🧪 Enviar Prueba Rápida
-                                </button>
-                            </div>
-
-                            {/* Campaign History */}
-                            <div style={{ background: '#fff', borderRadius: 20, padding: 24, border: `1px solid ${MARE.mist}` }}>
-                                <h3 style={{ fontFamily: FONTS.serif, fontSize: 18, color: MARE.primary, marginBottom: 16, letterSpacing: '-0.02em' }}>
-                                    Historial de Envíos
-                                </h3>
-                                {campaigns.length === 0 ? (
-                                    <div style={{ textAlign: 'center', padding: '32px 0', color: MARE.stone, fontSize: 13, border: `2px dashed ${MARE.mist}`, borderRadius: 16 }}>
-                                        No hay campañas enviadas aún.
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                        {campaigns.map(camp => (
-                                            <div key={camp.id} style={{
-                                                display: 'flex', gap: 12, padding: 12, borderRadius: 14,
-                                                border: `1px solid ${MARE.mist}`, alignItems: 'center', transition: 'all 200ms ease',
-                                            }}>
-                                                <div style={{
-                                                    width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
-                                                    background: MARE.surface, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                }}>
-                                                    {camp.metadata?.imageUrl
-                                                        ? <img src={camp.metadata.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                        : <Mail size={18} color={MARE.stone} />}
-                                                </div>
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <h4 style={{ fontSize: 13, fontWeight: 600, color: MARE.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{camp.title}</h4>
-                                                    <p style={{ fontSize: 11, color: MARE.stone, marginTop: 2 }}>{new Date(camp.created_at).toLocaleDateString()}</p>
-                                                </div>
-                                                <span style={{
-                                                    fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 8,
-                                                    background: camp.status === 'active' ? `${MARE.sage}20` : `${MARE.mist}`,
-                                                    color: camp.status === 'active' ? MARE.sage : MARE.stone,
-                                                    textTransform: 'uppercase' as const, letterSpacing: '0.04em',
-                                                }}>
-                                                    {camp.status === 'active' ? 'Activa' : 'Inactiva'}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                        <div className="mare-fade-up">
+                            <CampaignsTab />
                         </div>
                     )}
 
                     {/* ACTIVITY */}
-                    {activeTab === 'activity' && (
-                        <div className="mare-fade-up" style={{
-                            background: '#fff', borderRadius: 20, padding: 24, border: `1px solid ${MARE.mist}`,
-                            textAlign: 'center', color: MARE.stone,
-                        }}>
-                            <Clock size={32} style={{ margin: '0 auto 12px', opacity: 0.4 }} />
-                            <p style={{ fontSize: 14 }}>Registro de actividad próximamente</p>
-                        </div>
-                    )}
+                    {
+                        activeTab === 'activity' && (
+                            <div className="mare-fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                {/* Filter */}
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    {[
+                                        { id: 'all', label: 'Todo' },
+                                        { id: 'add_stamp', label: 'Sellos' },
+                                        { id: 'redeem_reward', label: 'Canjes' },
+                                    ].map(f => (
+                                        <button key={f.id}
+                                            onClick={() => setActivityFilter(f.id as any)}
+                                            style={{
+                                                padding: '8px 16px', borderRadius: 12, border: 'none', cursor: 'pointer',
+                                                fontSize: 13, fontWeight: 600, fontFamily: FONTS.sans,
+                                                background: activityFilter === f.id ? MARE.primary : '#fff',
+                                                color: activityFilter === f.id ? MARE.surface : MARE.stone,
+                                                transition: 'all 200ms ease',
+                                            }}
+                                        >{f.label}</button>
+                                    ))}
+                                </div>
 
-                    {/* SETTINGS */}
-                    {activeTab === 'settings' && (
-                        <div className="mare-fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            <div style={{ background: '#fff', borderRadius: 20, padding: 24, border: `1px solid ${MARE.mist}` }}>
-                                <h3 style={{ fontFamily: FONTS.serif, fontSize: 18, color: MARE.primary, marginBottom: 16, letterSpacing: '-0.02em' }}>
-                                    Reglas de Negocio
-                                </h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                    <MareSettingRow label="Happy Hour (Puntos Dobles)" desc="Los clientes suman x2 sellos al escanear." />
-                                    <MareSettingRow label="Solicitar PIN en Canjes" desc="Mayor seguridad al entregar premios." defaultOn />
+                                {/* Log List */}
+                                <div style={{ background: '#fff', borderRadius: 20, border: `1px solid ${MARE.mist}`, overflow: 'hidden' }}>
+                                    {activityLogs
+                                        .filter(log => activityFilter === 'all' || log.type === activityFilter)
+                                        .length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: 32, color: MARE.stone, fontSize: 13 }}>
+                                            No hay actividad reciente.
+                                        </div>
+                                    ) : (
+                                        activityLogs
+                                            .filter(log => activityFilter === 'all' || log.type === activityFilter)
+                                            .map((log, idx) => {
+                                                const isStamp = log.type === 'add_stamp';
+                                                const staffName = log.staff?.full_name || log.staff?.email?.split('@')[0] || 'Staff';
+                                                const customerName = log.customer?.full_name || log.customer?.email?.split('@')[0] || 'Cliente';
+                                                const timeAgo = getTimeAgo(log.created_at);
+                                                return (
+                                                    <div key={log.id} style={{
+                                                        display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px',
+                                                        borderBottom: `0.5px solid ${MARE.mist}`,
+                                                    }}>
+                                                        <div style={{
+                                                            width: 36, height: 36, borderRadius: 10, display: 'flex',
+                                                            alignItems: 'center', justifyContent: 'center',
+                                                            background: isStamp ? `${MARE.sage}15` : `${MARE.gold}15`,
+                                                            color: isStamp ? MARE.sage : MARE.gold,
+                                                            flexShrink: 0,
+                                                        }}>
+                                                            {isStamp ? <Scan size={18} /> : <Gift size={18} />}
+                                                        </div>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <p style={{ fontSize: 13, fontWeight: 500, color: MARE.ink }}>
+                                                                <strong>{staffName}</strong>
+                                                                {isStamp ? ' dio sello a ' : ' canjeó premio para '}
+                                                                <strong>{customerName}</strong>
+                                                            </p>
+                                                        </div>
+                                                        <span style={{ fontSize: 11, color: MARE.stone, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                                            {timeAgo}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })
+                                    )}
                                 </div>
                             </div>
-                            <div style={{ background: '#fff', borderRadius: 20, padding: 24, border: `1px solid ${MARE.mist}` }}>
-                                <h3 style={{ fontFamily: FONTS.serif, fontSize: 18, color: MARE.primary, marginBottom: 16, letterSpacing: '-0.02em' }}>
-                                    Configuración General
-                                </h3>
-                                <p style={{ fontSize: 13, color: MARE.stone, marginBottom: 16 }}>Configuración para {config.name}</p>
-                                <button style={{
-                                    width: '100%', padding: '14px 0', borderRadius: 12,
-                                    background: MARE.primary, color: MARE.surface, border: 'none',
-                                    fontFamily: FONTS.sans, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                                }}>
-                                    Actualizar Credenciales
-                                </button>
+                        )
+                    }
+
+                    {/* SETTINGS */}
+                    {
+                        activeTab === 'settings' && (
+                            <div className="mare-fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                {/* Stamps Per Reward */}
+                                <div style={{ background: '#fff', borderRadius: 20, padding: 24, border: `1px solid ${MARE.mist}` }}>
+                                    <h3 style={{ fontFamily: FONTS.serif, fontSize: 18, color: MARE.primary, marginBottom: 8, letterSpacing: '-0.02em' }}>
+                                        Programa de Lealtad
+                                    </h3>
+                                    <p style={{ fontSize: 13, color: MARE.stone, marginBottom: 20 }}>
+                                        Configurá cuántos sellos necesita un cliente para ganar su recompensa.
+                                    </p>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                                        <label style={{ fontSize: 14, fontWeight: 600, color: MARE.ink, minWidth: 180 }}>
+                                            Sellos para recompensa
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={50}
+                                            value={stampsPerReward}
+                                            onChange={e => setStampsPerReward(Number(e.target.value))}
+                                            style={{
+                                                width: 80, padding: '10px 14px', borderRadius: 12,
+                                                border: `1.5px solid ${MARE.mist}`, fontSize: 16, fontWeight: 700,
+                                                fontFamily: FONTS.mono, textAlign: 'center', color: MARE.primary,
+                                                outline: 'none',
+                                            }}
+                                        />
+                                        <button
+                                            onClick={handleSaveStamps}
+                                            disabled={savingStamps}
+                                            style={{
+                                                padding: '10px 20px', borderRadius: 12, border: 'none', cursor: 'pointer',
+                                                background: MARE.primary, color: MARE.surface,
+                                                fontFamily: FONTS.sans, fontSize: 13, fontWeight: 600,
+                                                opacity: savingStamps ? 0.6 : 1,
+                                            }}
+                                        >
+                                            {savingStamps ? 'Guardando...' : 'Guardar'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Business Rules */}
+                                <div style={{ background: '#fff', borderRadius: 20, padding: 24, border: `1px solid ${MARE.mist}` }}>
+                                    <h3 style={{ fontFamily: FONTS.serif, fontSize: 18, color: MARE.primary, marginBottom: 16, letterSpacing: '-0.02em' }}>
+                                        Reglas de Negocio
+                                    </h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        <MareSettingRow label="Happy Hour (Puntos Dobles)" desc="Los clientes suman x2 sellos al escanear." />
+                                        <MareSettingRow label="Solicitar PIN en Canjes" desc="Mayor seguridad al entregar premios." defaultOn />
+                                    </div>
+                                </div>
+
+                                {/* Security */}
+                                <div style={{ background: '#fff', borderRadius: 20, padding: 24, border: `1px solid ${MARE.mist}` }}>
+                                    <h3 style={{ fontFamily: FONTS.serif, fontSize: 18, color: MARE.primary, marginBottom: 8, letterSpacing: '-0.02em' }}>
+                                        Seguridad
+                                    </h3>
+                                    <p style={{ fontSize: 13, color: MARE.stone, marginBottom: 16 }}>
+                                        Cambiar el PIN de administración de tu local.
+                                    </p>
+                                    <button
+                                        onClick={() => setShowPinModal(true)}
+                                        style={{
+                                            padding: '12px 24px', borderRadius: 12, border: `1.5px solid ${MARE.mist}`,
+                                            background: 'transparent', color: MARE.primary,
+                                            fontFamily: FONTS.sans, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                                        }}
+                                    >
+                                        🔒 Cambiar PIN
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    )}
-                </div>
-            </div>
+                        )
+                    }
+
+                    {/* PIN Change Modal */}
+                    {
+                        showPinModal && (
+                            <div style={{
+                                position: 'fixed', inset: 0, zIndex: 100,
+                                background: 'rgba(26,50,120,0.3)', backdropFilter: 'blur(6px)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+                            }} onClick={() => setShowPinModal(false)}>
+                                <div onClick={e => e.stopPropagation()} style={{
+                                    background: '#fff', borderRadius: 24, padding: 32, maxWidth: 400, width: '100%',
+                                    boxShadow: '0 8px 40px rgba(0,0,0,0.12)',
+                                }}>
+                                    <h3 style={{ fontFamily: FONTS.serif, fontSize: 20, color: MARE.primary, marginBottom: 20 }}>Cambiar PIN</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                        <div>
+                                            <label style={{ fontSize: 12, fontWeight: 600, color: MARE.stone, display: 'block', marginBottom: 6 }}>PIN Actual</label>
+                                            <input type="password" value={pinForm.current} onChange={e => setPinForm(p => ({ ...p, current: e.target.value }))}
+                                                style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: `1.5px solid ${MARE.mist}`, fontSize: 16, fontFamily: FONTS.mono, outline: 'none', boxSizing: 'border-box' }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: 12, fontWeight: 600, color: MARE.stone, display: 'block', marginBottom: 6 }}>PIN Nuevo</label>
+                                            <input type="password" value={pinForm.newPin} onChange={e => setPinForm(p => ({ ...p, newPin: e.target.value }))}
+                                                style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: `1.5px solid ${MARE.mist}`, fontSize: 16, fontFamily: FONTS.mono, outline: 'none', boxSizing: 'border-box' }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: 12, fontWeight: 600, color: MARE.stone, display: 'block', marginBottom: 6 }}>Confirmar PIN Nuevo</label>
+                                            <input type="password" value={pinForm.confirm} onChange={e => setPinForm(p => ({ ...p, confirm: e.target.value }))}
+                                                style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: `1.5px solid ${MARE.mist}`, fontSize: 16, fontFamily: FONTS.mono, outline: 'none', boxSizing: 'border-box' }} />
+                                        </div>
+                                        {pinError && <p style={{ fontSize: 13, color: MARE.terracotta, fontWeight: 500 }}>{pinError}</p>}
+                                        <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                                            <button onClick={() => setShowPinModal(false)} style={{
+                                                flex: 1, padding: '12px 0', borderRadius: 12, border: `1px solid ${MARE.mist}`,
+                                                background: 'transparent', color: MARE.stone, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: FONTS.sans,
+                                            }}>Cancelar</button>
+                                            <button onClick={handleChangePin} disabled={savingPin} style={{
+                                                flex: 1, padding: '12px 0', borderRadius: 12, border: 'none',
+                                                background: MARE.primary, color: MARE.surface, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: FONTS.sans,
+                                                opacity: savingPin ? 0.6 : 1,
+                                            }}>{savingPin ? 'Guardando...' : 'Cambiar PIN'}</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    }
+                </div >
+            </div >
 
             {/* ═══ Email Editor Modal ═══ */}
-            {showEditor && (
-                <EmailEditor
-                    initialData={editorInitialData}
-                    onClose={() => setShowEditor(false)}
-                    onSend={handleSendFromEditor}
-                    audience={activeAudience}
-                    isSending={isSending}
-                />
-            )}
-        </main>
+            {
+                showEditor && (
+                    <EmailEditor
+                        initialData={editorInitialData}
+                        onClose={() => setShowEditor(false)}
+                        onSend={handleSendFromEditor}
+                        onSave={async () => { setShowEditor(false); }}
+                        audience={activeAudience}
+                        isSending={isSending}
+                    />
+                )
+            }
+        </main >
     );
 }
 

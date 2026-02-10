@@ -22,36 +22,52 @@ export default function ClientsTab() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [showQR, setShowQR] = useState(false);
+    const [page, setPage] = useState(0);
+    const [totalCount, setTotalCount] = useState(0);
+    const PAGE_SIZE = 25;
 
     useEffect(() => {
         const fetchClients = async () => {
+            setLoading(true);
+            const from = page * PAGE_SIZE;
+            const to = from + PAGE_SIZE - 1;
+
+            let countQuery = supabase
+                .from('profiles')
+                .select('*', { count: 'exact', head: true })
+                .eq('role', 'customer');
 
             let query = supabase
                 .from('profiles')
-                .select('*, stamps(count)') // select stamps too
+                .select('*, stamps(count)')
                 .eq('role', 'customer');
 
             if (config.code === 'mare_cafe') {
+                countQuery = countQuery.or('client_code.eq.mare_cafe,client_code.is.null');
                 query = query.or('client_code.eq.mare_cafe,client_code.is.null');
             } else {
+                countQuery = countQuery.eq('client_code', config.code);
                 query = query.eq('client_code', config.code);
             }
 
-            const { data } = await query
-                .order('created_at', { ascending: false });
+            const [{ count }, { data }] = await Promise.all([
+                countQuery,
+                query.order('created_at', { ascending: false }).range(from, to)
+            ]);
+
+            setTotalCount(count || 0);
 
             if (data) {
-                // Map stamps count cleanly
                 const formatted = data.map(c => ({
                     ...c,
-                    stamps: c.stamps?.[0]?.count || 0 // Assuming one-to-one or taking first
+                    stamps: c.stamps?.[0]?.count || 0
                 }));
                 setClients(formatted);
             }
             setLoading(false);
         };
         fetchClients();
-    }, [config]);
+    }, [config, page]);
 
     const filteredClients = clients.filter(c =>
     (c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -94,7 +110,7 @@ export default function ClientsTab() {
                                 <User size={24} className="text-blue-600" /> Base de Datos de Clientes
                             </h3>
                             <p className="text-slate-400 text-sm mt-1">
-                                {clients.length} clientes registrados en total.
+                                {totalCount} clientes registrados en total. Mostrando {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, totalCount)}
                             </p>
                         </div>
                         <button
@@ -188,6 +204,41 @@ export default function ClientsTab() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination */}
+                {totalCount > PAGE_SIZE && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, paddingTop: 16, borderTop: '1px solid #f1f5f9' }}>
+                        <button
+                            onClick={() => setPage(p => Math.max(0, p - 1))}
+                            disabled={page === 0}
+                            style={{
+                                padding: '8px 16px', borderRadius: 12, fontSize: 13, fontWeight: 600,
+                                background: page === 0 ? '#f1f5f9' : '#1A3278',
+                                color: page === 0 ? '#94a3b8' : '#fff',
+                                cursor: page === 0 ? 'not-allowed' : 'pointer',
+                                border: 'none', transition: 'all 200ms ease',
+                            }}
+                        >
+                            ← Anterior
+                        </button>
+                        <span style={{ fontSize: 13, color: '#8C8B88' }}>
+                            Página {page + 1} de {Math.ceil(totalCount / PAGE_SIZE)}
+                        </span>
+                        <button
+                            onClick={() => setPage(p => p + 1)}
+                            disabled={(page + 1) * PAGE_SIZE >= totalCount}
+                            style={{
+                                padding: '8px 16px', borderRadius: 12, fontSize: 13, fontWeight: 600,
+                                background: (page + 1) * PAGE_SIZE >= totalCount ? '#f1f5f9' : '#1A3278',
+                                color: (page + 1) * PAGE_SIZE >= totalCount ? '#94a3b8' : '#fff',
+                                cursor: (page + 1) * PAGE_SIZE >= totalCount ? 'not-allowed' : 'pointer',
+                                border: 'none', transition: 'all 200ms ease',
+                            }}
+                        >
+                            Siguiente →
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

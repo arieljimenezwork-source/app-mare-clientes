@@ -18,6 +18,8 @@ import QRCode from 'react-qr-code';
 import Image from 'next/image';
 import PoweredBy from '@/components/PoweredBy';
 import MarketingNotification from '@/components/client/marketing/MarketingNotification';
+import { getReferralCode, applyReferral } from '@/app/actions/loyalty';
+import { Copy, Gift, User, CheckCircle } from 'lucide-react';
 
 /* ─── Mare Design Tokens (inline constants) ─── */
 const MARE = {
@@ -118,6 +120,11 @@ export default function MareClient() {
     const [showLevelUpModal, setShowLevelUpModal] = useState(false);
     const [favDrink, setFavDrink] = useState('');
     const [activeTab, setActiveTab] = useState('home');
+    const [referralCode, setReferralCode] = useState('');
+    const [points, setPoints] = useState(0); // Distinct from stamps (which are specifically for coffee card)
+    const [inputReferral, setInputReferral] = useState('');
+    const [referralStatus, setReferralStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [referralMsg, setReferralMsg] = useState('');
 
     /* ─── Autenticación y carga de datos ─── */
     useEffect(() => {
@@ -126,10 +133,13 @@ export default function MareClient() {
             if (!session) { router.push('/auth/login'); return; }
 
             setUserUUID(session.user.id);
+            // Fetch referral code
+            const refRes = await getReferralCode(session.user.id, config.code);
+            if (refRes.success && refRes.code) setReferralCode(refRes.code);
 
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('role, client_code, first_name, level, preferences')
+                .select('role, client_code, first_name, level, preferences, points')
                 .eq('id', session.user.id)
                 .single();
 
@@ -137,6 +147,9 @@ export default function MareClient() {
 
             setUserName(profile?.first_name || 'Cliente');
             setUserLevel(profile?.level || 1);
+            setPoints(profile?.points || 0);
+
+            // ... rest of existing logic
             if (profile?.preferences?.favorite_drink) setFavDrink(profile.preferences.favorite_drink);
 
             fetchStamps(session.user.id);
@@ -187,6 +200,20 @@ export default function MareClient() {
     const handleTabChange = (tab: string) => {
         setActiveTab(tab);
         if (tab === 'menu' && config.features.menuEnabled) router.push('/client/menu');
+    };
+
+    const handleApplyReferral = async () => {
+        if (!inputReferral.trim()) return;
+        const res = await applyReferral(userUUID, inputReferral.trim(), config.code);
+        if (res.success) {
+            setReferralStatus('success');
+            setReferralMsg('¡Código aplicado! Tu amigo y tú recibirán beneficios.');
+            setInputReferral('');
+        } else {
+            setReferralStatus('error');
+            setReferralMsg(res.error || 'Error al canjear código');
+        }
+        setTimeout(() => setReferralStatus('idle'), 3000);
     };
 
     /* ─── Loading State ─── */
@@ -256,146 +283,286 @@ export default function MareClient() {
             </header>
 
             {/* ═══ MAIN CONTENT ═══ */}
-            <main style={{ padding: '0 16px', maxWidth: 480, margin: '0 auto' }} className="mare-fade-up">
+            {activeTab === 'home' ? (
+                <main style={{ padding: '0 16px', maxWidth: 480, margin: '0 auto' }} className="mare-fade-up">
 
-                {/* ─── Tarjeta de Fidelidad (Mini, sobresale del header) ─── */}
-                <div style={{ marginTop: -16 }}>
-                    <div style={{
-                        background: MARE.canvas, borderRadius: 16, padding: '16px 20px',
-                        border: `1px solid ${MARE.mist}`, boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                            <span style={{ fontFamily: FONTS.serif, fontSize: 14, color: MARE.primary }}>{config.texts.stampCardTitle}</span>
-                            <span style={{ fontSize: 11, fontFamily: FONTS.mono, color: MARE.stone }}>{stamps}/{total}</span>
-                        </div>
-                        <div className="mare-stagger" style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 12 }}>
-                            {Array.from({ length: total }).map((_, i) => {
-                                const filled = i < stamps;
-                                const isLast = i === total - 1;
-                                return (
-                                    <div key={i} className={filled ? 'mare-stamp-bounce' : ''} style={{
-                                        width: 32, height: 32, borderRadius: '50%',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        background: isLast && isRewardAvailable
-                                            ? `linear-gradient(135deg, ${MARE.gold}, ${MARE.goldLight}, ${MARE.gold})`
-                                            : filled ? MARE.primary : 'transparent',
-                                        border: filled ? 'none' : `1.5px dashed ${MARE.gold}`,
-                                        transition: 'all 300ms ease',
-                                    }}>
-                                        {isLast ? <StarRewardIcon size={16} /> : filled ? <CoffeeStampIcon filled size={16} /> : <CoffeeStampIcon size={14} />}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        {/* Progress Bar */}
-                        <div style={{ height: 3, borderRadius: 2, background: MARE.mist, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', borderRadius: 2, background: MARE.primary, width: `${stampPct}%`, transition: 'width 500ms ease' }} />
-                        </div>
-                    </div>
-                </div>
-
-                {/* ─── Acceso Rápido ─── */}
-                <div style={{ marginTop: 24 }}>
-                    <div style={{ fontSize: 11, color: MARE.stone, letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: 12 }}>Acceso rápido</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <button
-                            onClick={() => handleTabChange('menu')}
-                            style={{
-                                padding: '14px 16px', borderRadius: 12, border: `1px solid ${MARE.mist}`,
-                                display: 'flex', alignItems: 'center', gap: 10, background: MARE.canvas,
-                                cursor: 'pointer', fontFamily: FONTS.sans, fontSize: 13, fontWeight: 500, color: MARE.ink,
-                            }}
-                        >
-                            <span style={{ fontSize: 18 }}>📖</span> Ver Menú
-                        </button>
-                        <button
-                            onClick={() => setShowQRSheet(true)}
-                            style={{
-                                padding: '14px 16px', borderRadius: 12, border: `1px solid ${MARE.mist}`,
-                                display: 'flex', alignItems: 'center', gap: 10, background: MARE.canvas,
-                                cursor: 'pointer', fontFamily: FONTS.sans, fontSize: 13, fontWeight: 500, color: MARE.ink,
-                            }}
-                        >
-                            <span style={{ fontSize: 18 }}>📱</span> Mi QR
-                        </button>
-                    </div>
-                </div>
-
-                {/* ─── Banner Promocional (estilo editorial) ─── */}
-                <div style={{ marginTop: 24 }}>
-                    <div style={{
-                        background: `linear-gradient(135deg, ${MARE.surface}, ${MARE.canvas})`,
-                        borderRadius: 20, padding: 24, border: `1.5px solid ${MARE.primary}`,
-                        position: 'relative', overflow: 'hidden',
-                    }}>
+                    {/* ─── Tarjeta de Fidelidad (Mini, sobresale del header) ─── */}
+                    <div style={{ marginTop: -16 }}>
                         <div style={{
-                            position: 'absolute', top: -20, right: -20, width: 100, height: 100,
-                            borderRadius: '50%', background: `${MARE.gold}15`,
-                        }} />
-                        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: MARE.gold, marginBottom: 8 }}>
-                            Café de Especialidad
-                        </p>
-                        <h3 style={{ fontFamily: FONTS.serif, fontSize: 22, color: MARE.primary, lineHeight: 1.15, letterSpacing: '-0.02em', marginBottom: 8 }}>
-                            Descubrí nuestros nuevos blends
-                        </h3>
-                        <p style={{ fontSize: 13, color: MARE.stone, lineHeight: 1.5, marginBottom: 16 }}>
-                            Microlotes seleccionados de Huila, Colombia y Sidama, Etiopía.
-                        </p>
-                        <button style={{
-                            background: MARE.primary, color: MARE.surface, border: 'none',
-                            padding: '12px 24px', borderRadius: 12, fontFamily: FONTS.sans,
-                            fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                            transition: 'all 200ms ease',
+                            background: MARE.canvas, borderRadius: 16, padding: '16px 20px',
+                            border: `1px solid ${MARE.mist}`, boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
                         }}>
-                            Explorar →
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <span style={{ fontFamily: FONTS.serif, fontSize: 14, color: MARE.primary }}>{config.texts.stampCardTitle}</span>
+                                <span style={{ fontSize: 11, fontFamily: FONTS.mono, color: MARE.stone }}>{stamps}/{total}</span>
+                            </div>
+                            <div className="mare-stagger" style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 12 }}>
+                                {Array.from({ length: total }).map((_, i) => {
+                                    const filled = i < stamps;
+                                    const isLast = i === total - 1;
+                                    return (
+                                        <div key={i} className={filled ? 'mare-stamp-bounce' : ''} style={{
+                                            width: 32, height: 32, borderRadius: '50%',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            background: isLast && isRewardAvailable
+                                                ? `linear-gradient(135deg, ${MARE.gold}, ${MARE.goldLight}, ${MARE.gold})`
+                                                : filled ? MARE.primary : 'transparent',
+                                            border: filled ? 'none' : `1.5px dashed ${MARE.gold}`,
+                                            transition: 'all 300ms ease',
+                                        }}>
+                                            {isLast ? <StarRewardIcon size={16} /> : filled ? <CoffeeStampIcon filled size={16} /> : <CoffeeStampIcon size={14} />}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            {/* Progress Bar */}
+                            <div style={{ height: 3, borderRadius: 2, background: MARE.mist, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', borderRadius: 2, background: MARE.primary, width: `${stampPct}%`, transition: 'width 500ms ease' }} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ─── Acceso Rápido ─── */}
+                    <div style={{ marginTop: 24 }}>
+                        <div style={{ fontSize: 11, color: MARE.stone, letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: 12 }}>Acceso rápido</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            <button
+                                onClick={() => handleTabChange('menu')}
+                                style={{
+                                    padding: '14px 16px', borderRadius: 12, border: `1px solid ${MARE.mist}`,
+                                    display: 'flex', alignItems: 'center', gap: 10, background: MARE.canvas,
+                                    cursor: 'pointer', fontFamily: FONTS.sans, fontSize: 13, fontWeight: 500, color: MARE.ink,
+                                }}
+                            >
+                                <span style={{ fontSize: 18 }}>📖</span> Ver Menú
+                            </button>
+                            <button
+                                onClick={() => setShowQRSheet(true)}
+                                style={{
+                                    padding: '14px 16px', borderRadius: 12, border: `1px solid ${MARE.mist}`,
+                                    display: 'flex', alignItems: 'center', gap: 10, background: MARE.canvas,
+                                    cursor: 'pointer', fontFamily: FONTS.sans, fontSize: 13, fontWeight: 500, color: MARE.ink,
+                                }}
+                            >
+                                <span style={{ fontSize: 18 }}>📱</span> Mi QR
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* ─── Banner Promocional (estilo editorial) ─── */}
+                    <div style={{ marginTop: 24 }}>
+                        <div style={{
+                            background: `linear-gradient(135deg, ${MARE.surface}, ${MARE.canvas})`,
+                            borderRadius: 20, padding: 24, border: `1.5px solid ${MARE.primary}`,
+                            position: 'relative', overflow: 'hidden',
+                        }}>
+                            <div style={{
+                                position: 'absolute', top: -20, right: -20, width: 100, height: 100,
+                                borderRadius: '50%', background: `${MARE.gold}15`,
+                            }} />
+                            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: MARE.gold, marginBottom: 8 }}>
+                                Café de Especialidad
+                            </p>
+                            <h3 style={{ fontFamily: FONTS.serif, fontSize: 22, color: MARE.primary, lineHeight: 1.15, letterSpacing: '-0.02em', marginBottom: 8 }}>
+                                Descubrí nuestros nuevos blends
+                            </h3>
+                            <p style={{ fontSize: 13, color: MARE.stone, lineHeight: 1.5, marginBottom: 16 }}>
+                                Microlotes seleccionados de Huila, Colombia y Sidama, Etiopía.
+                            </p>
+                            <button style={{
+                                background: MARE.primary, color: MARE.surface, border: 'none',
+                                padding: '12px 24px', borderRadius: 12, fontFamily: FONTS.sans,
+                                fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                transition: 'all 200ms ease',
+                            }}>
+                                Explorar →
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* ─── Novedades (News Feed editorial) ─── */}
+                    {config.features.showNewsFeed && (
+                        <div style={{ marginTop: 32 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '0 4px' }}>
+                                <span style={{ fontFamily: FONTS.serif, fontSize: 18, color: MARE.primary, letterSpacing: '-0.01em' }}>Novedades</span>
+                                <span style={{ fontSize: 12, color: MARE.blueSoft, fontWeight: 500, cursor: 'pointer' }}>Ver todos →</span>
+                            </div>
+                            <div className="scrollbar-hide" style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16 }}>
+                                {newsItems.map((item, i) => (
+                                    <div key={item.id} className="mare-fade-up" style={{
+                                        minWidth: 160, borderRadius: 16, border: `1px solid ${MARE.mist}`,
+                                        overflow: 'hidden', background: MARE.canvas, flexShrink: 0,
+                                        transition: 'all 200ms ease', cursor: 'pointer',
+                                        animationDelay: `${i * 50}ms`,
+                                    }}>
+                                        <div style={{
+                                            height: 80,
+                                            background: `linear-gradient(${135 + i * 30}deg, ${MARE.primary}, ${MARE.blueSoft})`,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontSize: 32,
+                                        }}>
+                                            {item.icon}
+                                        </div>
+                                        <div style={{ padding: '10px 12px' }}>
+                                            <span style={{
+                                                fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' as const,
+                                                color: MARE.gold, background: `${MARE.gold}15`, padding: '2px 6px', borderRadius: 4,
+                                            }}>
+                                                {item.cat}
+                                            </span>
+                                            <h4 style={{ fontFamily: FONTS.serif, fontSize: 13, color: MARE.ink, marginTop: 6, lineHeight: 1.3 }}>{item.title}</h4>
+                                            <p style={{ fontSize: 11, color: MARE.stone, marginTop: 4, lineHeight: 1.4 }}>{item.desc}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ─── Powered By ─── */}
+                    <div style={{ marginTop: 32, opacity: 0.3, textAlign: 'center' }}>
+                        <PoweredBy />
+                    </div>
+                </main>
+            ) : activeTab === 'profile' ? (
+                /* ═══ PROFILE CONTENT ═══ */
+                <main style={{ padding: '24px 20px', maxWidth: 480, margin: '0 auto', paddingBottom: 100 }} className="mare-fade-up">
+                    <h2 style={{ fontFamily: FONTS.serif, fontSize: 24, color: MARE.primary, marginBottom: 24 }}>Mi Perfil</h2>
+
+                    {/* User Info */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+                        <div style={{
+                            width: 60, height: 60, borderRadius: '50%', background: MARE.mist,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: MARE.stone
+                        }}>
+                            <User size={24} />
+                        </div>
+                        <div>
+                            <p style={{ fontSize: 18, fontWeight: 700, color: MARE.ink }}>{userName}</p>
+                            <p style={{ fontSize: 13, color: MARE.stone }}>Nivel {userLevel} • Miembro Premium</p>
+                        </div>
+                    </div>
+
+                    {/* Points Card */}
+                    <div style={{
+                        background: `linear-gradient(135deg, ${MARE.primary}, ${MARE.primaryHover})`,
+                        borderRadius: 20, padding: 24, color: MARE.surface, marginBottom: 24,
+                        boxShadow: '0 8px 32px rgba(26, 50, 120, 0.25)',
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div>
+                                <p style={{ fontSize: 12, opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mis Puntos</p>
+                                <p style={{ fontSize: 36, fontFamily: FONTS.serif, lineHeight: 1 }}>{points}</p>
+                            </div>
+                            <div style={{
+                                width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.1)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}>
+                                <Gift size={20} />
+                            </div>
+                        </div>
+                        <p style={{ fontSize: 12, marginTop: 16, opacity: 0.8 }}>
+                            Canjea estos puntos por recompensas exclusivas en el mostrador.
+                        </p>
+                    </div>
+
+                    {/* Referral Card */}
+                    <div style={{
+                        background: '#fff', borderRadius: 20, padding: 24,
+                        border: `1px solid ${MARE.mist}`, marginBottom: 24,
+                    }}>
+                        <h3 style={{ fontFamily: FONTS.serif, fontSize: 18, color: MARE.ink, marginBottom: 8 }}>
+                            Invita y Gana
+                        </h3>
+                        <p style={{ fontSize: 13, color: MARE.stone, marginBottom: 16, lineHeight: 1.5 }}>
+                            Comparte tu código con amigos. Ambos reciben beneficios exclusivos cuando ellos hagan su primera compra.
+                        </p>
+
+                        <div style={{
+                            background: MARE.canvas, padding: '12px 16px', borderRadius: 12,
+                            border: `1px dashed ${MARE.gold}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        }}>
+                            <span style={{ fontFamily: FONTS.mono, fontSize: 16, fontWeight: 700, color: MARE.primary, letterSpacing: '0.05em' }}>
+                                {referralCode || 'Generando...'}
+                            </span>
+                            <button
+                                onClick={() => {
+                                    if (referralCode) {
+                                        navigator.clipboard.writeText(referralCode);
+                                        alert('Código copiado!');
+                                    }
+                                }}
+                                style={{
+                                    border: 'none', background: 'none', cursor: 'pointer',
+                                    color: MARE.gold, display: 'flex', alignItems: 'center', gap: 6,
+                                    fontSize: 12, fontWeight: 600,
+                                }}
+                            >
+                                <Copy size={16} /> Copiar
+                            </button>
+                        </div>
+                    </div>
+
+
+
+                    {/* Apply Referral Code */}
+                    <div style={{
+                        background: '#fff', borderRadius: 20, padding: 24,
+                        border: `1px solid ${MARE.mist}`, marginBottom: 24,
+                    }}>
+                        <h4 style={{ fontFamily: FONTS.serif, fontSize: 16, color: MARE.ink, marginBottom: 8 }}>
+                            ¿Te invitó un amigo?
+                        </h4>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <input
+                                placeholder="Ingresa el código"
+                                value={inputReferral}
+                                onChange={e => setInputReferral(e.target.value.toUpperCase())}
+                                style={{
+                                    flex: 1, padding: '12px 16px', borderRadius: 12,
+                                    border: `1px solid ${MARE.mist}`, fontFamily: FONTS.mono,
+                                    fontSize: 14, outline: 'none', background: MARE.canvas,
+                                }}
+                            />
+                            <button
+                                onClick={handleApplyReferral}
+                                disabled={!inputReferral.trim()}
+                                style={{
+                                    padding: '0 20px', borderRadius: 12, border: 'none',
+                                    background: MARE.sage, color: '#fff',
+                                    fontFamily: FONTS.sans, fontSize: 13, fontWeight: 600,
+                                    cursor: 'pointer', opacity: !inputReferral.trim() ? 0.5 : 1,
+                                }}
+                            >
+                                Canjear
+                            </button>
+                        </div>
+                        {
+                            referralStatus !== 'idle' && (
+                                <p style={{
+                                    marginTop: 8, fontSize: 12,
+                                    color: referralStatus === 'success' ? MARE.sage : MARE.terracotta
+                                }}>
+                                    {referralMsg}
+                                </p>
+                            )
+                        }
+                    </div >
+
+                    <div style={{ textAlign: 'center', marginTop: 32 }}>
+                        <button
+                            onClick={() => supabase.auth.signOut().then(() => router.push('/auth/login'))}
+                            style={{
+                                background: 'transparent', border: `1px solid ${MARE.terracotta}`,
+                                color: MARE.terracotta, padding: '12px 24px', borderRadius: 12,
+                                fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                            }}
+                        >
+                            Cerrar Sesión
                         </button>
                     </div>
-                </div>
-
-                {/* ─── Novedades (News Feed editorial) ─── */}
-                {config.features.showNewsFeed && (
-                    <div style={{ marginTop: 32 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '0 4px' }}>
-                            <span style={{ fontFamily: FONTS.serif, fontSize: 18, color: MARE.primary, letterSpacing: '-0.01em' }}>Novedades</span>
-                            <span style={{ fontSize: 12, color: MARE.blueSoft, fontWeight: 500, cursor: 'pointer' }}>Ver todos →</span>
-                        </div>
-                        <div className="scrollbar-hide" style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16 }}>
-                            {newsItems.map((item, i) => (
-                                <div key={item.id} className="mare-fade-up" style={{
-                                    minWidth: 160, borderRadius: 16, border: `1px solid ${MARE.mist}`,
-                                    overflow: 'hidden', background: MARE.canvas, flexShrink: 0,
-                                    transition: 'all 200ms ease', cursor: 'pointer',
-                                    animationDelay: `${i * 50}ms`,
-                                }}>
-                                    <div style={{
-                                        height: 80,
-                                        background: `linear-gradient(${135 + i * 30}deg, ${MARE.primary}, ${MARE.blueSoft})`,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: 32,
-                                    }}>
-                                        {item.icon}
-                                    </div>
-                                    <div style={{ padding: '10px 12px' }}>
-                                        <span style={{
-                                            fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' as const,
-                                            color: MARE.gold, background: `${MARE.gold}15`, padding: '2px 6px', borderRadius: 4,
-                                        }}>
-                                            {item.cat}
-                                        </span>
-                                        <h4 style={{ fontFamily: FONTS.serif, fontSize: 13, color: MARE.ink, marginTop: 6, lineHeight: 1.3 }}>{item.title}</h4>
-                                        <p style={{ fontSize: 11, color: MARE.stone, marginTop: 4, lineHeight: 1.4 }}>{item.desc}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* ─── Powered By ─── */}
-                <div style={{ marginTop: 32, opacity: 0.3, textAlign: 'center' }}>
-                    <PoweredBy />
-                </div>
-            </main>
+                </main >
+            ) : null}
 
             {/* ═══ BOTTOM NAVIGATION — Glass Bar, 4 Tabs ═══ */}
             <nav style={{
@@ -448,169 +615,173 @@ export default function MareClient() {
             </nav>
 
             {/* ═══ QR SHEET — Bottom Sheet (spring animation) ═══ */}
-            {showQRSheet && (
-                <>
-                    {/* Overlay */}
-                    <div
-                        onClick={() => setShowQRSheet(false)}
-                        style={{
-                            position: 'fixed', inset: 0, zIndex: 40,
-                            background: 'rgba(26, 50, 120, 0.4)',
-                            backdropFilter: 'blur(8px)',
-                            transition: 'opacity 300ms',
-                        }}
-                    />
-                    {/* Sheet */}
-                    <div className="mare-slide-up" style={{
-                        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
-                    }}>
-                        <div style={{
-                            background: MARE.canvas, borderRadius: '24px 24px 0 0',
-                            maxWidth: 420, margin: '0 auto', width: '100%',
-                            padding: '12px 24px 40px',
-                            boxShadow: '0 -8px 40px rgba(0,0,0,0.15)',
+            {
+                showQRSheet && (
+                    <>
+                        {/* Overlay */}
+                        <div
+                            onClick={() => setShowQRSheet(false)}
+                            style={{
+                                position: 'fixed', inset: 0, zIndex: 40,
+                                background: 'rgba(26, 50, 120, 0.4)',
+                                backdropFilter: 'blur(8px)',
+                                transition: 'opacity 300ms',
+                            }}
+                        />
+                        {/* Sheet */}
+                        <div className="mare-slide-up" style={{
+                            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
                         }}>
-                            {/* Drag Handle */}
-                            <div style={{ width: 48, height: 5, borderRadius: 3, background: MARE.mist, margin: '0 auto 20px', opacity: 0.5 }} />
-
-                            {/* Status Badge */}
-                            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                                <span style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                                    padding: '6px 16px', borderRadius: 20,
-                                    fontSize: 12, fontWeight: 600,
-                                    background: isRewardAvailable ? `${MARE.gold}20` : `${MARE.primary}08`,
-                                    color: isRewardAvailable ? MARE.gold : MARE.primary,
-                                    fontFamily: FONTS.sans,
-                                }}>
-                                    {isRewardAvailable ? '★ ¡Premio disponible!' : '☕ Muestra al barista'}
-                                </span>
-                            </div>
-
-                            {/* QR Code */}
                             <div style={{
-                                borderRadius: 24, padding: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                maxWidth: 280, margin: '0 auto',
-                                background: isRewardAvailable ? MARE.primary : MARE.surface,
-                                border: isRewardAvailable ? 'none' : `1.5px solid ${MARE.mist}`,
-                                transition: 'all 300ms ease',
+                                background: MARE.canvas, borderRadius: '24px 24px 0 0',
+                                maxWidth: 420, margin: '0 auto', width: '100%',
+                                padding: '12px 24px 40px',
+                                boxShadow: '0 -8px 40px rgba(0,0,0,0.15)',
                             }}>
-                                <div style={{ background: '#fff', padding: 16, borderRadius: 16 }}>
-                                    <QRCode
-                                        value={qrData}
-                                        size={176}
-                                        fgColor={MARE.primary}
-                                        bgColor="#FFFFFF"
-                                    />
+                                {/* Drag Handle */}
+                                <div style={{ width: 48, height: 5, borderRadius: 3, background: MARE.mist, margin: '0 auto 20px', opacity: 0.5 }} />
+
+                                {/* Status Badge */}
+                                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                                    <span style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                                        padding: '6px 16px', borderRadius: 20,
+                                        fontSize: 12, fontWeight: 600,
+                                        background: isRewardAvailable ? `${MARE.gold}20` : `${MARE.primary}08`,
+                                        color: isRewardAvailable ? MARE.gold : MARE.primary,
+                                        fontFamily: FONTS.sans,
+                                    }}>
+                                        {isRewardAvailable ? '★ ¡Premio disponible!' : '☕ Muestra al barista'}
+                                    </span>
                                 </div>
+
+                                {/* QR Code */}
+                                <div style={{
+                                    borderRadius: 24, padding: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    maxWidth: 280, margin: '0 auto',
+                                    background: isRewardAvailable ? MARE.primary : MARE.surface,
+                                    border: isRewardAvailable ? 'none' : `1.5px solid ${MARE.mist}`,
+                                    transition: 'all 300ms ease',
+                                }}>
+                                    <div style={{ background: '#fff', padding: 16, borderRadius: 16 }}>
+                                        <QRCode
+                                            value={qrData}
+                                            size={176}
+                                            fgColor={MARE.primary}
+                                            bgColor="#FFFFFF"
+                                        />
+                                    </div>
+                                </div>
+
+                                <p style={{
+                                    textAlign: 'center', fontSize: 12, color: MARE.stone, marginTop: 20,
+                                    maxWidth: 220, margin: '20px auto 0', lineHeight: 1.5, fontFamily: FONTS.sans,
+                                }}>
+                                    {isRewardAvailable
+                                        ? 'El barista escaneará este código para canjear tu premio.'
+                                        : 'Acumula sellos con cada compra presentando este código.'}
+                                </p>
+
+                                {/* Close Button */}
+                                <button
+                                    onClick={() => setShowQRSheet(false)}
+                                    style={{
+                                        width: '100%', marginTop: 24, padding: '14px 0', borderRadius: 12,
+                                        background: MARE.mist, border: 'none', cursor: 'pointer',
+                                        fontFamily: FONTS.sans, fontSize: 14, fontWeight: 600, color: MARE.stone,
+                                        transition: 'all 200ms ease',
+                                    }}
+                                >
+                                    Cerrar
+                                </button>
                             </div>
-
-                            <p style={{
-                                textAlign: 'center', fontSize: 12, color: MARE.stone, marginTop: 20,
-                                maxWidth: 220, margin: '20px auto 0', lineHeight: 1.5, fontFamily: FONTS.sans,
-                            }}>
-                                {isRewardAvailable
-                                    ? 'El barista escaneará este código para canjear tu premio.'
-                                    : 'Acumula sellos con cada compra presentando este código.'}
-                            </p>
-
-                            {/* Close Button */}
-                            <button
-                                onClick={() => setShowQRSheet(false)}
-                                style={{
-                                    width: '100%', marginTop: 24, padding: '14px 0', borderRadius: 12,
-                                    background: MARE.mist, border: 'none', cursor: 'pointer',
-                                    fontFamily: FONTS.sans, fontSize: 14, fontWeight: 600, color: MARE.stone,
-                                    transition: 'all 200ms ease',
-                                }}
-                            >
-                                Cerrar
-                            </button>
                         </div>
-                    </div>
-                </>
-            )}
+                    </>
+                )
+            }
 
             {/* ═══ MODAL — Canje Exitoso / Preferencia ═══ */}
-            {showLevelUpModal && (
-                <div style={{
-                    position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'rgba(26, 50, 120, 0.5)', backdropFilter: 'blur(8px)', padding: 16,
-                }}>
-                    <div className="mare-fade-up" style={{
-                        background: MARE.canvas, borderRadius: 24, padding: 32, maxWidth: 360, width: '100%',
-                        textAlign: 'center', position: 'relative', overflow: 'hidden',
+            {
+                showLevelUpModal && (
+                    <div style={{
+                        position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'rgba(26, 50, 120, 0.5)', backdropFilter: 'blur(8px)', padding: 16,
                     }}>
-                        {/* Gold accent circle */}
-                        <div style={{
-                            position: 'absolute', top: -30, right: -30, width: 120, height: 120,
-                            borderRadius: '50%', background: `${MARE.gold}15`,
-                        }} />
-                        <div style={{
-                            position: 'absolute', bottom: -20, left: -20, width: 80, height: 80,
-                            borderRadius: '50%', background: `${MARE.primary}08`,
-                        }} />
-
-                        <div style={{ position: 'relative', zIndex: 1 }}>
+                        <div className="mare-fade-up" style={{
+                            background: MARE.canvas, borderRadius: 24, padding: 32, maxWidth: 360, width: '100%',
+                            textAlign: 'center', position: 'relative', overflow: 'hidden',
+                        }}>
+                            {/* Gold accent circle */}
                             <div style={{
-                                width: 64, height: 64, borderRadius: '50%',
-                                background: `linear-gradient(135deg, ${MARE.gold}, ${MARE.goldLight}, ${MARE.gold})`,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                margin: '0 auto 16px',
-                            }}>
-                                <StarRewardIcon size={32} />
-                            </div>
-
-                            <h2 style={{ fontFamily: FONTS.serif, fontSize: 24, color: MARE.primary, marginBottom: 8, letterSpacing: '-0.02em' }}>
-                                ¡Canje Exitoso!
-                            </h2>
-                            <p style={{ fontSize: 14, color: MARE.stone, marginBottom: 24, lineHeight: 1.5 }}>
-                                Has disfrutado tu premio. Cuéntanos, ¿cuál fue tu bebida de hoy?
-                            </p>
-
+                                position: 'absolute', top: -30, right: -30, width: 120, height: 120,
+                                borderRadius: '50%', background: `${MARE.gold}15`,
+                            }} />
                             <div style={{
-                                background: MARE.surface, padding: 16, borderRadius: 16, textAlign: 'left',
-                                border: `1px solid ${MARE.mist}`, marginBottom: 20,
-                            }}>
-                                <label style={{
-                                    display: 'block', fontSize: 11, fontWeight: 600, color: MARE.stone,
-                                    letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 8,
+                                position: 'absolute', bottom: -20, left: -20, width: 80, height: 80,
+                                borderRadius: '50%', background: `${MARE.primary}08`,
+                            }} />
+
+                            <div style={{ position: 'relative', zIndex: 1 }}>
+                                <div style={{
+                                    width: 64, height: 64, borderRadius: '50%',
+                                    background: `linear-gradient(135deg, ${MARE.gold}, ${MARE.goldLight}, ${MARE.gold})`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    margin: '0 auto 16px',
                                 }}>
-                                    Tu bebida favorita
-                                </label>
-                                <input
-                                    type="text"
-                                    value={favDrink}
-                                    onChange={(e) => setFavDrink(e.target.value)}
-                                    placeholder="Ej. Cappuccino, Latte Vainilla..."
-                                    style={{
-                                        width: '100%', padding: '12px 14px', borderRadius: 12,
-                                        border: `1.5px solid ${MARE.mist}`, fontFamily: FONTS.sans,
-                                        fontSize: 14, outline: 'none', background: MARE.canvas, color: MARE.ink,
-                                        transition: 'border-color 200ms ease',
-                                    }}
-                                    onFocus={e => e.target.style.borderColor = MARE.primary}
-                                    onBlur={e => e.target.style.borderColor = MARE.mist}
-                                />
-                            </div>
+                                    <StarRewardIcon size={32} />
+                                </div>
 
-                            <button
-                                onClick={handleSavePreferences}
-                                style={{
-                                    width: '100%', padding: '14px 0', borderRadius: 12,
-                                    background: MARE.primary, color: MARE.surface, border: 'none',
-                                    fontFamily: FONTS.sans, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                                    transition: 'all 200ms ease',
-                                }}
-                            >
-                                Guardar Preferencia
-                            </button>
+                                <h2 style={{ fontFamily: FONTS.serif, fontSize: 24, color: MARE.primary, marginBottom: 8, letterSpacing: '-0.02em' }}>
+                                    ¡Canje Exitoso!
+                                </h2>
+                                <p style={{ fontSize: 14, color: MARE.stone, marginBottom: 24, lineHeight: 1.5 }}>
+                                    Has disfrutado tu premio. Cuéntanos, ¿cuál fue tu bebida de hoy?
+                                </p>
+
+                                <div style={{
+                                    background: MARE.surface, padding: 16, borderRadius: 16, textAlign: 'left',
+                                    border: `1px solid ${MARE.mist}`, marginBottom: 20,
+                                }}>
+                                    <label style={{
+                                        display: 'block', fontSize: 11, fontWeight: 600, color: MARE.stone,
+                                        letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 8,
+                                    }}>
+                                        Tu bebida favorita
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={favDrink}
+                                        onChange={(e) => setFavDrink(e.target.value)}
+                                        placeholder="Ej. Cappuccino, Latte Vainilla..."
+                                        style={{
+                                            width: '100%', padding: '12px 14px', borderRadius: 12,
+                                            border: `1.5px solid ${MARE.mist}`, fontFamily: FONTS.sans,
+                                            fontSize: 14, outline: 'none', background: MARE.canvas, color: MARE.ink,
+                                            transition: 'border-color 200ms ease',
+                                        }}
+                                        onFocus={e => e.target.style.borderColor = MARE.primary}
+                                        onBlur={e => e.target.style.borderColor = MARE.mist}
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={handleSavePreferences}
+                                    style={{
+                                        width: '100%', padding: '14px 0', borderRadius: 12,
+                                        background: MARE.primary, color: MARE.surface, border: 'none',
+                                        fontFamily: FONTS.sans, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                                        transition: 'all 200ms ease',
+                                    }}
+                                >
+                                    Guardar Preferencia
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             <MarketingNotification userLevel={userLevel} clientCode={config.code} />
-        </div>
+        </div >
     );
 }

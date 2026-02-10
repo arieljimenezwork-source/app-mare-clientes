@@ -3,15 +3,25 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useClientConfig } from '@/context/ClientConfigContext';
-import { CATEGORIES, PRODUCTS } from '@/data/menu-data';
-import { Product } from '@/types/menu';
+import { Product, Category } from '@/types/menu';
 import { FileText, Utensils, Coffee, Tags, BookOpen } from 'lucide-react';
+import { getPublicMenu } from '@/app/actions/catalog';
 
 import MenuHeader from '@/components/client/menu/MenuHeader';
 import CategoryTabs from '@/components/client/menu/CategoryTabs';
 import ProductGrid from '@/components/client/menu/ProductGrid';
 import ProductDetailModal from '@/components/client/menu/ProductDetailModal';
 import MenuGalleryModal from '@/components/client/menu/MenuGalleryModal';
+
+// ─── Tag label mapping for product detail display ───
+const TAG_LABELS: Record<string, string> = {
+    vegano: '🌱 Vegano',
+    sin_gluten: '🌾 Sin Gluten',
+    nuevo: '✨ Nuevo',
+    popular: '🔥 Popular',
+    sin_lactosa: '🥛 Sin Lactosa',
+    especial: '⭐ Especial',
+};
 
 export default function MenuPage() {
     const router = useRouter();
@@ -22,12 +32,54 @@ export default function MenuPage() {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
 
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
+
     useEffect(() => {
         if (!config.features.menuEnabled) {
-            router.replace('/client'); // Redirect if disabled
+            router.replace('/client');
             return;
         }
-        setLoading(false);
+
+        async function loadMenu() {
+            try {
+                const menu = await getPublicMenu(config.code);
+
+                // Map DB categories → frontend Category type
+                const mappedCategories: Category[] = menu.categories.map((c: any) => ({
+                    id: c.id,
+                    name: c.name,
+                }));
+
+                // Map DB products → frontend Product type
+                const mappedProducts: Product[] = menu.products.map((p: any) => {
+                    const cat = menu.categories.find((c: any) => c.id === p.category_id);
+                    return {
+                        id: p.id,
+                        name: p.name,
+                        description: p.description || '',
+                        price: p.base_price,
+                        image: p.image_url || '',
+                        category: p.category_id || 'uncategorized',
+                        attributes: {
+                            sizes: p.variants?.map((v: any) => v.name) || undefined,
+                            allergens: p.tags
+                                ?.filter((t: string) => ['sin_gluten', 'sin_lactosa'].includes(t))
+                                .map((t: string) => TAG_LABELS[t] || t) || undefined,
+                        },
+                    };
+                });
+
+                setCategories(mappedCategories);
+                setProducts(mappedProducts);
+            } catch (err) {
+                console.error('Error loading menu from DB:', err);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        loadMenu();
     }, [router, config]);
 
     const handleOpenGallery = (index: number = 0) => {
@@ -36,8 +88,8 @@ export default function MenuPage() {
     };
 
     const filteredProducts = selectedCategory === 'all'
-        ? PRODUCTS
-        : PRODUCTS.filter(p => p.category === selectedCategory);
+        ? products
+        : products.filter(p => p.category === selectedCategory);
 
     if (loading) return <div className="min-h-screen bg-white flex items-center justify-center">Cargando menú...</div>;
 
@@ -80,17 +132,25 @@ export default function MenuPage() {
 
             <div className="mt-8">
                 <CategoryTabs
-                    categories={CATEGORIES}
+                    categories={categories}
                     selectedCategory={selectedCategory}
                     onSelect={setSelectedCategory}
                 />
             </div>
 
             <main className="max-w-2xl mx-auto mt-4 px-4">
-                <ProductGrid
-                    products={filteredProducts}
-                    onProductClick={setSelectedProduct}
-                />
+                {products.length === 0 && !loading ? (
+                    <div className="text-center py-16 text-gray-400">
+                        <Coffee size={40} className="mx-auto mb-3 opacity-30" />
+                        <p className="font-medium">Menú en preparación</p>
+                        <p className="text-sm mt-1">Pronto encontrarás aquí nuestros productos.</p>
+                    </div>
+                ) : (
+                    <ProductGrid
+                        products={filteredProducts}
+                        onProductClick={setSelectedProduct}
+                    />
+                )}
             </main>
 
             <ProductDetailModal

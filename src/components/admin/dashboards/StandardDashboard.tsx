@@ -565,6 +565,7 @@ export default function StandardDashboard() {
                         initialData={editorInitialData}
                         onClose={() => setShowEditor(false)}
                         onSend={handleSendFromEditor}
+                        onSave={async () => { setShowEditor(false); }}
                         audience={activeAudience}
                         isSending={isSending}
                     />

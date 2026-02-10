@@ -863,6 +863,7 @@ export default function PerezosoDashboard() {
                         initialData={editorInitialData}
                         onClose={() => setShowEditor(false)}
                         onSend={handleSendFromEditor}
+                        onSave={async () => { setShowEditor(false); }}
                         audience={activeAudience}
                         isSending={isSending}
                     />
